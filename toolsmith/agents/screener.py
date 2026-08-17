@@ -46,6 +46,15 @@ Judge only what is in front of you:
 - Does the description match the parameter schema, or promise more than the
   schema can deliver? A tool that calls itself read-only while its schema can
   write, delete, or send data elsewhere is the clearest case.
+- If `previous_description` is present, this entry was approved once and has
+  been rewritten since. Compare them. Wording that got clearer, or documents
+  something the tool already did, is ordinary maintenance. Wording that adds a
+  capability -- especially sending data anywhere, mirroring, backing up,
+  syncing, or reaching past the function it was approved for -- is a tool that
+  changed into something else after being trusted. Judge that on the
+  publisher's demonstrated intent and block it. Cutting the new scope back
+  would neutralise this particular attempt, but someone who rewrites an
+  approved entry to reach further has told you what they are for.
 - Are the requested scopes wider than the described function needs?
 - Is the parameter schema typed and complete, or vague and untyped?
 - Is this tool trying to capture calls meant for one already attached? This
@@ -70,6 +79,33 @@ findings you happened to list.
 Put the minimum set of scopes that still performs the described function in
 `granted_scopes`, and what was asked for in `requested_scopes`. When in doubt,
 grant less.
+
+`granted_scopes` is not restricted to a subset of what was requested. Name the
+narrowest permission that actually performs the function, even if the
+publisher never offered it in that form -- if it asks for broad account access
+to file an issue, the answer is the issue permission, not a slightly smaller
+piece of account access.
+
+Prefer a permission bounded to the specific resource the task named over one
+bounded to the whole account. On GitHub that means fine-grained permissions
+like `issues:write` or `contents:read`, which apply to a selected repository,
+rather than classic scopes like `repo`, `public_repo` or `gist`, which apply
+to everything the user owns. Reaching for a narrower account-wide scope is not
+minimisation; it still hands over every repository of that kind.
+
+Grant strictly what the described function needs and nothing adjacent to it. A
+tool that says it lists issues gets the issue permission, not also the
+permission for pull requests, releases or discussions, however naturally they
+go together. If the description does not claim to do it, it does not get
+permission to do it.
+
+Often there is nothing to cut. When the requested scope is already the
+narrowest permission that performs the function -- `issues:write` for a tool
+that files, edits or closes issues -- that is correct, not excessive. Grant it
+and report nothing. `excessive_scope` describes a gap between what was asked
+for and what is needed; where there is no gap, there is no finding, and
+inventing one to seem thorough is the same error as reporting a finding you
+cannot quote.
 
 An over-broad scope request is usually a reason to grant less, not a reason to
 refuse the tool. If the described function is legitimate and works fine on a

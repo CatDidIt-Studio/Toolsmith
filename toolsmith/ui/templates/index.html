@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Toolsmith{% endblock %}
+
+{% block head %}
+<style>
+  .row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 1rem; padding: .85rem 1.1rem; border-top: 1px solid var(--line-soft);
+    text-decoration: none; color: inherit;
+  }
+  .row:first-of-type { border-top: 0; }
+  .row:hover { background: var(--bg); }
+  .list { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .name { font-family: var(--mono); font-size: .85rem; }
+  .state { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+  .empty { color: var(--ink-3); padding: 2rem 1.1rem; text-align: center; }
+  h1 { font-size: 1.1rem; margin: 0 0 1rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<h1>Approval requests</h1>
+<div class="list">
+  {% for r in requests %}
+    <a class="row" href="/approve/{{ r.id }}">
+      <span class="name">{{ r.tool.tool_name }} <span style="color:var(--ink-3)">· {{ r.provenance.server_name }}</span></span>
+      <span class="state">{{ r.decision }}</span>
+    </a>
+  {% else %}
+    <p class="empty">Nothing waiting. Toolsmith has everything it needs.</p>
+  {% endfor %}
+</div>
+{% endblock %}

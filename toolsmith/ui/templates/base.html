@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Toolsmith{% endblock %}</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --line: #dfe3e8;
+    --line-soft: #eceff2;
+    --ink: #14171a;
+    --ink-2: #4a5158;
+    --ink-3: #767f88;
+    --accent: #1b52d1;
+    --grant: #0d7a4a;
+    --grant-bg: #e8f5ee;
+    --withhold: #a8341f;
+    --withhold-bg: #fbeceA;
+    --warn: #8a5a00;
+    --warn-bg: #fdf3e0;
+    --block: #a8181c;
+    --block-bg: #fbeaea;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1114;
+      --surface: #171b1f;
+      --line: #2b3238;
+      --line-soft: #21272c;
+      --ink: #eef1f4;
+      --ink-2: #b3bcc4;
+      --ink-3: #7e8892;
+      --accent: #7aa2ff;
+      --grant: #4ec98a;
+      --grant-bg: #12271d;
+      --withhold: #f08a72;
+      --withhold-bg: #2c1713;
+      --warn: #e0a83c;
+      --warn-bg: #2a2010;
+      --block: #f2706f;
+      --block-bg: #2d1415;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 40rem; margin: 0 auto; }
+  code, .mono { font-family: var(--mono); font-size: 0.82em; }
+  a { color: var(--accent); }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<main>
+{% block body %}{% endblock %}
+</main>
+</body>
+</html>

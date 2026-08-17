@@ -60,6 +60,7 @@ async def main() -> int:
     dangerous_let_through: list[str] = []
     clean_blocked: list[str] = []
     wrong_severity: list[str] = []
+    wrong_grants: list[str] = []
     missed_codes: list[str] = []
     errors: list[str] = []
     latencies: list[float] = []
@@ -97,6 +98,14 @@ async def main() -> int:
                 f"{case.candidate.server_id} missed {sorted(c.value for c in missing)}"
             )
 
+        if case.expected_granted is not None:
+            got_grant = frozenset(verdict.granted_scopes)
+            if got_grant != case.expected_granted:
+                wrong_grants.append(
+                    f"{case.candidate.server_id}: expected "
+                    f"{sorted(case.expected_granted) or '[]'} got {sorted(got_grant) or '[]'}"
+                )
+
         mark = "ok " if ok else "MISS"
         print(
             f"  {mark} {case.candidate.server_id:28} "
@@ -110,6 +119,9 @@ async def main() -> int:
     print(f"  dangerous let through : {len(dangerous_let_through)} {dangerous_let_through}")
     print(f"  clean blocked         : {len(clean_blocked)} {clean_blocked}")
     print(f"  wrong severity only   : {len(wrong_severity)} {wrong_severity}")
+    print(f"  wrong permission      : {len(wrong_grants)}")
+    for line in wrong_grants:
+        print(f"      {line}")
     if latencies:
         print(
             f"  latency               : median {sorted(latencies)[len(latencies) // 2]:.2f}s "
@@ -122,7 +134,7 @@ async def main() -> int:
 
     # Only letting something dangerous through is a hard failure. Errors are
     # loud but do not silently pass the run either.
-    return 1 if (dangerous_let_through or errors) else 0
+    return 1 if (dangerous_let_through or wrong_grants or errors) else 0
 
 
 if __name__ == "__main__":

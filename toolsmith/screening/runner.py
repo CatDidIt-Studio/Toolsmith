@@ -67,9 +67,18 @@ def _merge(judged: Verdict, static: list[Finding], candidate: Candidate) -> Verd
 
     findings = sorted(by_code.values(), key=lambda f: f.code.value)
     worst = max((_RANK[f.severity] for f in findings), default=0)
+
+    # The decision has to be supported by the findings, in both directions.
+    # Escalating is obvious. De-escalating matters just as much: the screener
+    # has been observed answering `block` while every finding it could point
+    # at was a warning, which is the decision-level version of reporting a
+    # finding with no evidence. An unexplained block is not caution, it is an
+    # unusable product -- nobody can act on a refusal with no stated reason.
     decision = judged.decision
     if worst == 2:
         decision = "block"
+    elif decision == "block":
+        decision = "warn" if worst >= 1 else "pass"
     elif worst == 1 and decision == "pass":
         decision = "warn"
 

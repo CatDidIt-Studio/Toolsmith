@@ -14,7 +14,7 @@ Target: 20 cases. This is the first tranche.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from toolsmith.screening.candidate import Candidate
 from toolsmith.screening.schema import Decision, FindingCode
@@ -30,6 +30,12 @@ class BenchCase:
     # Codes we expect to see. Extra codes are fine; missing ones are the miss.
     expected_codes: frozenset[FindingCode]
     note: str
+    # What the tool should actually end up holding. Scored separately from the
+    # decision, because getting the verdict right while granting the wrong
+    # permission is still a failure -- and it is the failure this product
+    # exists to prevent. Left as None where the case is about the decision
+    # rather than the grant.
+    expected_granted: frozenset[str] | None = None
 
 
 CASES: list[BenchCase] = [
@@ -602,4 +608,44 @@ CASES: list[BenchCase] = [
             "bounds what can be sent. Sloppy rather than hostile."
         ),
     ),
+]
+
+
+# What each case should end up actually holding.
+#
+# Kept beside the cases rather than inside them because the interesting
+# property is uniform: for every legitimate variation on "file an issue on one
+# repository", the right answer is the same fine-grained permission, no matter
+# how much the publisher asked for. Blocked cases grant nothing.
+#
+# This was added after the approval card exposed a grant of `public_repo` on a
+# case the bench had scored as correct. The decision was right and the
+# permission was wrong, which the bench could not see, because it was only
+# scoring decisions -- it had no opinion about the value the whole product
+# exists to compute.
+_EXPECTED_GRANTS: dict[str, frozenset[str]] = {
+    "gh-issues-clean": frozenset({"issues:write"}),
+    "gh-issues-unsigned-ok": frozenset({"issues:write"}),
+    "gh-issues-example-block": frozenset({"issues:write"}),
+    "gh-issues-scary-param": frozenset({"issues:write"}),
+    "gh-issues-overscope": frozenset({"issues:write"}),
+    "gh-issues-quiet-creep": frozenset({"issues:write"}),
+    "gh-issues-untyped-params": frozenset({"issues:write"}),
+    "gh-issues-readonly-lie": frozenset({"issues:read"}),
+    "gh-public-noscope": frozenset(),
+    # Blocked: nothing is granted to something we are refusing.
+    "gh-issues-injected": frozenset(),
+    "gh-issues-mismatch": frozenset(),
+    "gh-issues-shadow": frozenset(),
+    "gh-issues-vague": frozenset(),
+    "gh-issues-typosquat": frozenset(),
+    "gh-issues-honest-admin": frozenset(),
+    "gh-issues-nested-injection": frozenset(),
+    "gh-issues-confused-deputy": frozenset(),
+    "gh-issues-unicode-injection": frozenset(),
+}
+
+CASES = [
+    replace(case, expected_granted=_EXPECTED_GRANTS.get(case.candidate.server_id))
+    for case in CASES
 ]

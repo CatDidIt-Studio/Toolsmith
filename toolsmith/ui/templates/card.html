@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Attach {{ a.tool.tool_name }}?{% endblock %}
+
+{% block head %}
+<style>
+  .eyebrow {
+    font-size: 0.78rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: .5rem;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; overflow: hidden;
+  }
+  .sec { padding: 1.15rem 1.35rem; border-top: 1px solid var(--line-soft); }
+  .sec:first-child { border-top: 0; }
+  .sec h2 {
+    margin: 0 0 .85rem; font-size: 0.72rem; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 600;
+  }
+
+  .ask { font-size: 1.05rem; margin: 0 0 .35rem; }
+  .ask strong { font-family: var(--mono); font-size: .95em; }
+  .because { color: var(--ink-2); margin: 0; }
+
+  .badge {
+    display: inline-block; padding: .18rem .5rem; border-radius: 999px;
+    font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .badge.warn  { background: var(--warn-bg);  color: var(--warn); }
+  .badge.block { background: var(--block-bg); color: var(--block); }
+  .badge.pass  { background: var(--grant-bg); color: var(--grant); }
+
+  /* The permission diff is the reason this page exists. */
+  .perm { display: flex; gap: .7rem; padding: .6rem 0; border-top: 1px dashed var(--line-soft); }
+  .perm:first-of-type { border-top: 0; }
+  .mark { flex: none; width: 1.1rem; font-weight: 700; line-height: 1.5; }
+  .perm .what { margin: 0; }
+  .perm .name { display: block; margin-top: .15rem; color: var(--ink-3); }
+  .granted .mark { color: var(--grant); }
+  .withheld .mark { color: var(--withhold); }
+  .withheld .what { color: var(--ink-2); }
+
+  .lede { margin: 0 0 .55rem; color: var(--ink-2); font-size: .9rem; }
+  .withheld-wrap {
+    margin-top: 1rem; padding: .85rem 1rem; border-radius: 10px;
+    background: var(--withhold-bg); border: 1px solid transparent;
+  }
+  .withheld-wrap h3 {
+    margin: 0 0 .3rem; font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--withhold);
+  }
+
+  .finding { padding: .6rem 0; border-top: 1px dashed var(--line-soft); }
+  .finding:first-of-type { border-top: 0; }
+  .finding .code { font-family: var(--mono); font-size: .82rem; }
+  .finding.block .code { color: var(--block); }
+  .finding.warn  .code { color: var(--warn); }
+  .finding.info  .code { color: var(--ink-3); }
+  .evidence {
+    margin: .35rem 0 0; padding: .5rem .7rem; border-left: 2px solid var(--line);
+    background: var(--bg); border-radius: 0 6px 6px 0;
+    font-family: var(--mono); font-size: .76rem; color: var(--ink-2);
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  .facts { margin: 0; display: grid; grid-template-columns: 8.5rem 1fr; gap: .4rem .8rem; }
+  .facts dt { color: var(--ink-3); font-size: .85rem; }
+  .facts dd { margin: 0; font-size: .85rem; word-break: break-word; }
+
+  .actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+  button {
+    font: inherit; font-weight: 600; padding: .6rem 1.1rem;
+    border-radius: 9px; cursor: pointer; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink);
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:hover { filter: brightness(1.06); }
+  .undo { margin: .8rem 0 0; font-size: .82rem; color: var(--ink-3); }
+
+  .settled {
+    padding: .9rem 1.1rem; border-radius: 10px; font-weight: 600;
+    background: var(--grant-bg); color: var(--grant);
+  }
+  .settled.denied { background: var(--withhold-bg); color: var(--withhold); }
+  .blocked-note {
+    padding: .9rem 1.1rem; border-radius: 10px;
+    background: var(--block-bg); color: var(--block); font-size: .9rem;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<p class="eyebrow">Toolsmith found a tool it does not have</p>
+
+<div class="card">
+
+  <div class="sec">
+    <p class="ask">
+      Attach <strong>{{ a.tool.tool_name }}</strong>
+      <span class="badge {{ a.verdict.decision }}">{{ a.verdict.decision }}</span>
+    </p>
+    <p class="because">so it can {{ a.capability }}.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Permissions</h2>
+    {% if a.granted %}
+      <p class="lede">If you attach it, this is everything it will be able to do.</p>
+      {% for m in a.granted %}
+        <div class="perm granted">
+          <span class="mark">✓</span>
+          <p class="what">{{ m.consequence }}<code class="name">{{ m.scope }}</code></p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="lede">This tool is being granted no permissions at all.</p>
+    {% endif %}
+
+    {% if a.withheld %}
+      <div class="withheld-wrap">
+        <h3>Asked for, not granted</h3>
+        <p class="lede">
+          {% if a.verdict.blocked %}
+            Screening refused this tool, so none of what it asked for is being given.
+          {% else %}
+            It requested more than the task needs. The rest is not being given.
+          {% endif %}
+        </p>
+        {% for m in a.withheld %}
+          <div class="perm withheld">
+            <span class="mark">✕</span>
+            <p class="what">{{ m.consequence }}<code class="name">{{ m.scope }}</code></p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="sec">
+    <h2>What was checked</h2>
+    {% if a.verdict.findings %}
+      {% for f in a.verdict.findings %}
+        <div class="finding {{ f.severity }}">
+          <span class="code">{{ f.code.value }}</span>
+          {% if f.evidence %}<p class="evidence">{{ f.evidence | tidy }}</p>{% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="lede">Nothing stood out. Description matches its schema, scope matches its function.</p>
+    {% endif %}
+  </div>
+
+  <div class="sec">
+    <h2>Where it came from</h2>
+    <dl class="facts">
+      <dt>Server</dt><dd><code>{{ a.provenance.server_name }}</code> v{{ a.provenance.version }}</dd>
+      <dt>Endpoint</dt><dd><code>{{ a.endpoint }}</code></dd>
+      <dt>Publisher</dt><dd>{{ a.provenance.publisher or "not declared" }}</dd>
+      <dt>Signature</dt><dd>{{ "signed" if a.provenance.signed else "unsigned" }}</dd>
+      <dt>Registry</dt><dd>{{ a.provenance.registry_status }}</dd>
+      {% if a.provenance.repository_url %}
+        <dt>Source</dt><dd><a href="{{ a.provenance.repository_url }}">{{ a.provenance.repository_url }}</a></dd>
+      {% endif %}
+      {% if a.provenance.republished %}
+        <dt>Changed</dt><dd>republished since first publication ({{ a.provenance.updated_at }})</dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="sec">
+    {% if a.decision != "pending" %}
+      <p class="settled {{ 'denied' if a.decision == 'denied' else '' }}">
+        {{ "Attached." if a.decision == "approved" else "Not attached." }}
+      </p>
+    {% elif not a.approvable %}
+      <p class="blocked-note">
+        Screening blocked this one, so it is not offered for approval.
+        Toolsmith will keep looking.
+      </p>
+    {% else %}
+      <form method="post" action="/approve/{{ a.id }}" class="actions">
+        <button class="primary" name="decision" value="approved" type="submit">
+          Attach with {{ a.granted | length }} permission{{ "" if a.granted | length == 1 else "s" }}
+        </button>
+        <button name="decision" value="denied" type="submit">Don't attach</button>
+      </form>
+      <p class="undo">You can detach this at any time, and it loses every permission when you do.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
