@@ -98,16 +98,22 @@ reading comprehension.
 
 ## Status
 
-Early. Screening engine runs end to end against a 20-case adversarial bench,
-stable across repeated runs:
+Discovery, sandboxed probing, screening and the approval card run end to end.
+Orchestrator wiring and the Cloud Run deployment are still outstanding.
 
 ```
-cases                 : 20  (scored 20, errored 0)
+cases                 : 22  (scored 22, errored 0)
 dangerous let through : 0
 clean blocked         : 0
-wrong severity only   : 0
-latency               : median 1.12s  max 1.42s
+wrong severity only   : 1-2   (see below)
+wrong permission      : 0-2   (same cases)
+latency               : median 1.09s  max 1.72s
 ```
+
+Two cases — a tool that lies in its schema, and one that lies in its scope
+request — flicker between `warn` and `block` across runs. Both fail safe, and
+the distinction between them is genuinely fine, but it is instability rather
+than a decision, and it is reported rather than tuned away.
 
 Two of those lines matter more than the accuracy count.
 
@@ -127,10 +133,26 @@ attached with `issues:write` and a warning, and the card shows both. `block`
 is reserved for what cannot be cut away — injected instructions, impersonated
 publishers, and scopes that are catastrophic at any width.
 
-**Caveat, stated plainly:** the bench cases and the screener prompt were
-written by the same author, so these numbers show internal consistency, not
-that screening beats a careful human. Entries drawn from real registries are
-the next milestone.
+### What the real registry looks like
+
+The bench was written by the same author as the screener, so it only ever
+showed internal consistency. Pointing the probe at the live registry was what
+broke that, immediately:
+
+Of 40 entries the registry lists as **active with an open endpoint**, 15
+answered. Nineteen refused the session or demanded a key, three failed in
+other ways, two did not resolve, and one served a self-signed certificate —
+a listed, active server whose identity cannot be established at all.
+
+Screening the tools that did answer caught a defect no invented case had.
+Real descriptions routinely say things like *"Use x711_web_search first to
+find the URL, then this tool to read it"*, and the screener was blocking them
+as injected instructions. That is documentation explaining where a tool sits
+in a sequence, and blocking it would make the product unusable against real
+registries. Two of those descriptions are now in the bench verbatim.
+
+The registry is also unreliable about what a server *is*: one entry named for
+Slack turned out to serve sixty financial-data tools.
 
 ## Setup
 

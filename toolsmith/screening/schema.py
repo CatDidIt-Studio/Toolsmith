@@ -48,6 +48,14 @@ class FindingCode(str, Enum):
     PROVENANCE_CLAIM_UNSUPPORTED = "provenance_claim_unsupported"
     # Server failed or misbehaved during the isolated trial call.
     SANDBOX_TRIAL_FAILED = "sandbox_trial_failed"
+    # The connection itself could not be trusted -- an unverifiable or
+    # self-signed certificate means you cannot know who answered.
+    TRANSPORT_UNTRUSTED = "transport_untrusted"
+    # Listed as available, did not answer.
+    SERVER_UNREACHABLE = "server_unreachable"
+    # Two consecutive listings disagreed, so the tools screened are not
+    # reliably the tools that would be called.
+    UNSTABLE_TOOL_LISTING = "unstable_tool_listing"
 
 
 Severity = Literal["info", "warn", "block"]

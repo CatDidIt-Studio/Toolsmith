@@ -140,3 +140,56 @@ CHECKS = (
 
 def static_findings(candidate: Candidate) -> list[Finding]:
     return [f for check in CHECKS if (f := check(candidate)) is not None]
+
+
+_TLS_FAILURE = re.compile(
+    r"CERTIFICATE_VERIFY_FAILED|SSLError|SSLCertVerificationError|self[- ]signed",
+    re.IGNORECASE,
+)
+
+
+def probe_findings(result) -> list[Finding]:
+    """Findings that only exist once you have tried to connect.
+
+    These are not judgments about what a server claims -- they are facts about
+    what happened when we reached for it, and none of them are visible from
+    registry metadata. The registry lists servers as active that do not answer
+    at all, and lists endpoints whose certificates cannot be verified.
+    """
+    findings: list[Finding] = []
+    error = result.error or ""
+
+    if not result.ok:
+        if _TLS_FAILURE.search(error):
+            findings.append(
+                Finding(
+                    code=FindingCode.TRANSPORT_UNTRUSTED,
+                    severity="block",
+                    # Nothing this server said can be trusted, because there is
+                    # no way to establish that this server said it.
+                    evidence=_clip(f"{result.endpoint}: {error}"),
+                )
+            )
+        else:
+            findings.append(
+                Finding(
+                    code=FindingCode.SERVER_UNREACHABLE,
+                    severity="block",
+                    evidence=_clip(f"{result.endpoint}: {error}"),
+                )
+            )
+        return findings
+
+    if result.unstable_listing:
+        findings.append(
+            Finding(
+                code=FindingCode.UNSTABLE_TOOL_LISTING,
+                severity="block",
+                evidence=_clip(
+                    f"{result.endpoint} returned a different tool list on the "
+                    "second consecutive call"
+                ),
+            )
+        )
+
+    return findings

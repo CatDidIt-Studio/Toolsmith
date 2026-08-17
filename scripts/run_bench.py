@@ -45,8 +45,8 @@ async def _screen_with_retry(case: BenchCase) -> tuple[Verdict, float]:
         try:
             return await screen_candidate(
                 case.candidate,
-                task_summary=TASK_SUMMARY,
-                attached_tool_names=ATTACHED,
+                task_summary=case.context[0],
+                attached_tool_names=case.context[1],
             )
         except Exception as exc:  # noqa: BLE001
             last = exc
