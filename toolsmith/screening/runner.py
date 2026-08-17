@@ -9,13 +9,7 @@ version of them.
 
 from __future__ import annotations
 
-import json
-import time
-import uuid
-
-from google.adk.runners import FINISH_TASK_TOOL_NAME, InMemoryRunner
-from google.genai import types
-
+from toolsmith.agent_io import AgentOutputError, run_structured
 from toolsmith.agents.screener import build_screener
 from toolsmith.screening.candidate import Candidate
 from toolsmith.screening.checks import static_findings
@@ -43,42 +37,15 @@ async def screen_candidate(
     # Computed first, and never overridden by the judge.
     static = static_findings(candidate)
 
-    runner = InMemoryRunner(agent=build_screener(as_root=True), app_name=APP_NAME)
-    user_id = "screener"
-    session = await runner.session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=str(uuid.uuid4())
-    )
-
     prompt = candidate.as_untrusted_block(task_summary, attached_tool_names or [])
-    message = types.Content(role="user", parts=[types.Part(text=prompt)])
-
-    started = time.monotonic()
-    payload: dict | str | None = None
-    async for event in runner.run_async(
-        user_id=user_id, session_id=session.id, new_message=message
-    ):
-        for part in (event.content.parts if event.content else None) or []:
-            # In task mode ADK delivers a schema-constrained result as the
-            # arguments of a synthetic `finish_task` call rather than as text.
-            call = getattr(part, "function_call", None)
-            if call is not None and call.name == FINISH_TASK_TOOL_NAME:
-                payload = dict(call.args or {})
-            elif part.text:
-                payload = part.text
-    elapsed = time.monotonic() - started
-
-    if payload is None:
-        raise ScreeningError(f"screener returned nothing for {candidate.server_id}")
-
     try:
-        raw = json.loads(payload) if isinstance(payload, str) else payload
-        judged = Verdict.model_validate(raw)
-    except Exception as exc:  # noqa: BLE001
+        judged, elapsed = await run_structured(
+            build_screener(as_root=True), prompt, Verdict, app_name=APP_NAME
+        )
+    except AgentOutputError as exc:
         # A screener that cannot produce the schema is itself a failure to
         # block on -- never fall through to "assume it's fine".
-        raise ScreeningError(
-            f"screener output did not validate for {candidate.server_id}: {exc}"
-        ) from exc
+        raise ScreeningError(f"screening failed for {candidate.server_id}: {exc}") from exc
 
     return _merge(judged, static, candidate), elapsed
 

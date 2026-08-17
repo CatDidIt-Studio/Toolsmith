@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from google.genai import types
 
 # Credentials live outside the repo, following the per-project convention in
 # ~/keys/<Project>/. A local .env may override for one-off experiments, but the
@@ -32,6 +33,14 @@ SANDBOX_REGION = os.getenv("TOOLSMITH_SANDBOX_REGION", "us-central1")
 SANDBOX_SERVICE = os.getenv("TOOLSMITH_SANDBOX_SERVICE", "toolsmith-sandbox")
 
 DEMO_REPO = os.getenv("TOOLSMITH_DEMO_REPO", "CatDidIt-Studio/Toolsmith")
+
+# Every isolated agent in this system answers a closed question -- which
+# search terms, which candidates are relevant, is this entry safe -- and none
+# of them benefit from sampling variety. Left at the default temperature,
+# discovery returned a different candidate set on repeated runs against an
+# unchanged registry, which is both a bad security property and a bad thing to
+# stake a live demo on.
+DETERMINISTIC = types.GenerateContentConfig(temperature=0.0)
 
 # Session-state key under which approved attachments are recorded. The
 # ToolsmithToolset reads only this key when deciding what to expose.

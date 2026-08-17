@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from google.adk.agents import LlmAgent
 
-from toolsmith.config import SCREENER_MODEL
+from toolsmith.config import DETERMINISTIC, SCREENER_MODEL
 from toolsmith.screening.schema import Verdict
 
 INSTRUCTION = """\
@@ -100,6 +100,7 @@ def build_screener(*, as_root: bool = False) -> LlmAgent:
         instruction=INSTRUCTION,
         # Untrusted zone: no tools, no history, no way back.
         tools=[],
+        generate_content_config=DETERMINISTIC,
         include_contents="none",
         output_schema=Verdict,
         mode="task" if as_root else "single_turn",
