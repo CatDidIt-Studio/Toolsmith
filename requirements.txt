@@ -1,0 +1,17 @@
+# Toolsmith — All Things Agentic Hackathon
+#
+# NOTE: google-adk 2.7 requires mcp>=1.24,<2.
+# A bare `pip install mcp` pulls 2.0.0, which moved mcp.shared.session and
+# breaks `from google.adk.tools import MCPToolset`. Always install via the
+# [mcp] extra so the pin is honoured.
+google-adk[mcp]==2.7.0
+
+# Approval-card UI + local dev server
+fastapi
+uvicorn[standard]
+jinja2
+
+# Sandbox / registry clients
+httpx
+pydantic>=2
+python-dotenv

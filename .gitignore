@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.local
+*.log
+
+# Never commit credentials or granted-scope records
+secrets/
+*.pem
+*.key
+service-account*.json
+
+# Session / telemetry output
+runs/
+.adk/
