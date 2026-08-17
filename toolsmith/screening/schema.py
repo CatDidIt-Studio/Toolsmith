@@ -42,6 +42,10 @@ class FindingCode(str, Enum):
     LOW_SCHEMA_QUALITY = "low_schema_quality"
     # No signature, no provenance, anonymous publisher.
     UNVERIFIED_PROVENANCE = "unverified_provenance"
+    # Claims an affiliation it cannot back -- "official", "verified" -- while
+    # carrying no signature. Distinct from merely being unsigned: most of the
+    # registry is unsigned, but only some of it lies about that.
+    PROVENANCE_CLAIM_UNSUPPORTED = "provenance_claim_unsupported"
     # Server failed or misbehaved during the isolated trial call.
     SANDBOX_TRIAL_FAILED = "sandbox_trial_failed"
 

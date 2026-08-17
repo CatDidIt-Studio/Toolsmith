@@ -98,23 +98,39 @@ reading comprehension.
 
 ## Status
 
-Early. Screening engine runs end to end against an adversarial bench:
+Early. Screening engine runs end to end against a 20-case adversarial bench,
+stable across repeated runs:
 
 ```
-cases                 : 7          (target: 20)
+cases                 : 20  (scored 20, errored 0)
 dangerous let through : 0
 clean blocked         : 0
-latency               : median 1.15s  max 1.35s
+wrong severity only   : 0
+latency               : median 1.12s  max 1.42s
 ```
 
-The latency number is the one that matters — it is what makes screening
-viable while a human waits, and it is the line between this and an offline
-eval product.
+Two of those lines matter more than the accuracy count.
+
+**`clean blocked: 0`** is measured deliberately. Four cases exist only to be
+passed — an unsigned entry from nobody in particular, a legitimate tool whose
+documentation contains an assistant-directed usage example, a tool with a
+parameter named `force`, a read-only search needing no scopes at all. A
+screener that blocks these is not cautious, it is useless, and most of the
+tuning work so far has been holding this number at zero.
+
+**Median 1.12s** is what makes screening viable while a human waits, and it is
+the line between this and an offline eval product.
+
+Over-broad scope requests are answered by cutting the scope, not by rejecting
+the tool: a candidate asking for GitHub's `repo` scope to file an issue is
+attached with `issues:write` and a warning, and the card shows both. `block`
+is reserved for what cannot be cut away — injected instructions, impersonated
+publishers, and scopes that are catastrophic at any width.
 
 **Caveat, stated plainly:** the bench cases and the screener prompt were
-written by the same author, so these numbers are a smoke test, not evidence
-that screening beats a careful human. Harder, more ambiguous cases and entries
-drawn from real registries are the next milestone.
+written by the same author, so these numbers show internal consistency, not
+that screening beats a careful human. Entries drawn from real registries are
+the next milestone.
 
 ## Setup
 

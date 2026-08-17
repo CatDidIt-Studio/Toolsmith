@@ -42,9 +42,14 @@ def _clip(text: str) -> str:
 def check_description_drift(c: Candidate) -> Finding | None:
     """Rug-pull: approved once, quietly rewritten afterwards.
 
-    Any material change is reported. Deciding whether the new wording is
-    benign is the human's call at the approval card -- the point here is that
-    the change is never silent.
+    Reported as `warn`, not `block`. The check can prove the text moved; it
+    cannot tell a new exfiltration path from a clearer sentence, and treating
+    those alike would block half the healthy servers in a registry the first
+    time they improved their docs. What `warn` buys is that drift can never be
+    silent -- it always returns to the approval card.
+
+    Judging whether the *new* wording is dangerous is the screener's job, and
+    if it is, that finding blocks on its own merits.
     """
     if not c.previous_description:
         return None
@@ -52,7 +57,7 @@ def check_description_drift(c: Candidate) -> Finding | None:
         return None
     return Finding(
         code=FindingCode.DESCRIPTION_CHANGED_SINCE_SEEN,
-        severity="block",
+        severity="warn",
         evidence=_clip(
             f"previously: {c.previous_description!r}\nnow: {c.description!r}"
         ),
@@ -96,7 +101,41 @@ def check_schema_quality(c: Candidate) -> Finding | None:
     return None
 
 
-CHECKS = (check_description_drift, check_provenance, check_schema_quality)
+_AFFILIATION_CLAIM = re.compile(
+    r"\b(official|officially|verified|first[- ]party|authoris?ed|endorsed)\b",
+    re.IGNORECASE,
+)
+
+
+def check_provenance_claim(c: Candidate) -> Finding | None:
+    """An unsigned entry that calls itself official.
+
+    Being unsigned is unremarkable. Being unsigned while claiming an
+    affiliation is a different act, and it is the shape typosquatting takes in
+    a registry -- a near-miss publisher name plus the word "official" doing
+    the work a signature should be doing.
+    """
+    if c.signed:
+        return None
+    match = _AFFILIATION_CLAIM.search(c.description)
+    if not match:
+        return None
+    return Finding(
+        code=FindingCode.PROVENANCE_CLAIM_UNSUPPORTED,
+        severity="block",
+        evidence=_clip(
+            f"claims {match.group(0)!r} but carries no signature; "
+            f"publisher: {c.publisher or '(none declared)'}"
+        ),
+    )
+
+
+CHECKS = (
+    check_description_drift,
+    check_provenance,
+    check_provenance_claim,
+    check_schema_quality,
+)
 
 
 def static_findings(candidate: Candidate) -> list[Finding]:
