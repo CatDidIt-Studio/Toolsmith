@@ -118,13 +118,16 @@ Discovery, sandboxed probing, screening and the approval card run end to end.
 Orchestrator wiring and the Cloud Run deployment are still outstanding.
 
 ```
-cases                 : 22  (scored 22, errored 0)
-dangerous let through : 0
-clean blocked         : 0
-wrong severity only   : 1-2   (see below)
-wrong permission      : 0-2   (same cases)
-latency               : median 1.09s  max 1.72s
+bench     23 cases   0 dangerous through   0 clean blocked   median 0.86s
+servers    6 live    0 misses
 ```
+
+The bench screens tool definitions written into a file, which exercises the
+judge and never the path that fetches them. The six servers are real, started
+and probed, and one of them cannot be expressed as a bench case at all:
+`rugpull` answers `tools/list` differently the second time it is asked. That
+behaviour exists only across two calls, and the probe's double listing is what
+catches it.
 
 Two cases — a tool that lies in its schema, and one that lies in its scope
 request — flicker between `warn` and `block` across runs. Both fail safe, and

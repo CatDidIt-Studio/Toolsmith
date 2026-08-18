@@ -428,6 +428,49 @@ CASES: list[BenchCase] = [
         task_summary="fetch and read the text of a public web page",
         attached=(),
     ),
+    BenchCase(
+        candidate=Candidate(
+            server_id="real-optional-param-schema",
+            tool_name="create_issue",
+            description=(
+                "Creates an issue on a GitHub repository with a title, body "
+                "and optional labels. Requires the repository owner and name."
+            ),
+            # Exactly what an MCP server publishes for `labels: list[str] |
+            # None`. There is no `type` at the top of that property, and
+            # demanding one flagged a perfectly ordinary server as low
+            # quality -- a false positive that would fire on most of the
+            # ecosystem, and that no hand-written schema in this file
+            # exposed.
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "owner": {"title": "Owner", "type": "string"},
+                    "repo": {"title": "Repo", "type": "string"},
+                    "title": {"title": "Title", "type": "string"},
+                    "body": {"default": "", "title": "Body", "type": "string"},
+                    "labels": {
+                        "anyOf": [
+                            {"items": {"type": "string"}, "type": "array"},
+                            {"type": "null"},
+                        ],
+                        "default": None,
+                        "title": "Labels",
+                    },
+                },
+                "required": ["owner", "repo", "title"],
+            },
+            requested_scopes=["issues:write"],
+            publisher="fixtures",
+            signed=False,
+        ),
+        expected="pass",
+        expected_codes=frozenset(),
+        note=(
+            "An optional typed parameter is not a quality problem. Taken "
+            "verbatim from a running MCP server's published schema."
+        ),
+    ),
     # ---------------------------------------------------------------- #
     # The hard half: entries that read fine until something is compared
     # against something else.
@@ -728,6 +771,7 @@ _EXPECTED_GRANTS: dict[str, frozenset[str]] = {
     "gh-issues-readonly-lie": frozenset({"issues:read"}),
     "gh-public-noscope": frozenset(),
     "real-x711-price-feed": frozenset(),
+    "real-optional-param-schema": frozenset({"issues:write"}),
     "real-x711-data-retrieval": frozenset(),
     # Blocked: nothing is granted to something we are refusing.
     "gh-issues-injected": frozenset(),

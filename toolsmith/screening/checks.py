@@ -91,7 +91,7 @@ def check_schema_quality(c: Candidate) -> Finding | None:
             severity="block",
             evidence=_clip(f"no parameter properties declared: {c.input_schema!r}"),
         )
-    untyped = sorted(k for k, v in props.items() if not isinstance(v, dict) or "type" not in v)
+    untyped = sorted(k for k, v in props.items() if not _declares_a_type(v))
     if untyped:
         return Finding(
             code=FindingCode.LOW_SCHEMA_QUALITY,
@@ -128,6 +128,18 @@ def check_provenance_claim(c: Candidate) -> Finding | None:
             f"publisher: {c.publisher or '(none declared)'}"
         ),
     )
+
+
+# The ways a JSON Schema property can legitimately say what it holds. Only
+# `type` is the obvious one, and requiring it alone rejects ordinary schemas:
+# an optional typed parameter compiles to `anyOf: [{...}, {"type": "null"}]`
+# with no `type` at the top, which is what Pydantic emits for `list[str] |
+# None` and therefore what most MCP servers actually publish.
+_TYPE_KEYS = ("type", "anyOf", "oneOf", "allOf", "$ref", "enum", "const")
+
+
+def _declares_a_type(spec: object) -> bool:
+    return isinstance(spec, dict) and any(key in spec for key in _TYPE_KEYS)
 
 
 CHECKS = (
