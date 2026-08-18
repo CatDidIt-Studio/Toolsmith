@@ -67,6 +67,26 @@ class Acquisition:
     def acquired(self) -> bool:
         return self.approved is not None
 
+    @property
+    def outcome(self) -> str:
+        """Why acquisition ended the way it did.
+
+        Worth distinguishing carefully, because the agent narrates this to the
+        user and the difference is not cosmetic. "A person declined this" and
+        "nothing was found worth showing anyone" are very different statements,
+        and reporting the first when the second happened invents a decision the
+        user never made.
+        """
+        if self.approved is not None:
+            return "attached"
+        if any(r.stage == "approval" for r in self.rejected):
+            return "declined_by_user"
+        if self.screened:
+            return "screening_rejected_all"
+        if self.probed:
+            return "no_server_answered"
+        return "nothing_found"
+
 
 async def acquire(
     capability: str,
