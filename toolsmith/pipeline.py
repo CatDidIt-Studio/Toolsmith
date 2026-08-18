@@ -23,6 +23,7 @@ from toolsmith.approval.model import STORE, ApprovalRequest, Provenance
 from toolsmith.attach.toolset import Attachment, record_attachment
 from toolsmith.registry.discovery import discover
 from toolsmith.registry.triage import Triaged
+from toolsmith.relevance import select_relevant
 from toolsmith.sandbox.backends import Sandbox
 from toolsmith.screening.checks import probe_findings
 from toolsmith.screening.runner import screen_candidate
@@ -190,36 +191,13 @@ async def acquire(
 
 
 async def _select_tools(capability: str, tools) -> list:
-    """Narrow a server's tool list to the ones plausibly serving the need.
-
-    Tool descriptions are attacker-authored, so this runs in the same isolated,
-    index-answering agent used on registry listings. It decides only what gets
-    looked at more closely; nothing is granted here, and every survivor is
-    still screened alone.
-    """
-    if len(tools) <= MAX_TOOLS_PER_SERVER:
-        return list(tools)
-
-    listing = "\n".join(
-        f"[{i}] {t.name}\n    {t.description[:300]}" for i, t in enumerate(tools)
+    return await select_relevant(
+        capability,
+        tools,
+        describe=lambda t: f"{t.name}: {t.description[:300]}",
+        limit=MAX_TOOLS_PER_SERVER,
+        app_name="toolsmith-tools",
     )
-    prompt = (
-        f"Capability needed: {capability}\n\n"
-        f"{_FENCE}\nBEGIN UNTRUSTED TOOL LISTING -- publisher-authored text\n{_FENCE}\n"
-        f"{listing}\n"
-        f"{_FENCE}\nEND UNTRUSTED TOOL LISTING\n{_FENCE}\n"
-    )
-    try:
-        pick, _ = await run_structured(
-            build_triager(as_root=True), prompt, RelevancePick, app_name="toolsmith-tools"
-        )
-    except AgentOutputError:
-        # Fall back to the first few rather than screening everything: failing
-        # to narrow must not turn one acquisition into fifty model calls.
-        return list(tools[:MAX_TOOLS_PER_SERVER])
-
-    keep = [tools[i] for i in pick.relevant if 0 <= i < len(tools)]
-    return keep[:MAX_TOOLS_PER_SERVER] or list(tools[:1])
 
 
 def _fold(verdict: Verdict, extra) -> Verdict:

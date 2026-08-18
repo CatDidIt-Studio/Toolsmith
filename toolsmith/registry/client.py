@@ -19,10 +19,15 @@ attaching on the strength of metadata nobody verified.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+
+from toolsmith.registry import catalog
+
+logger = logging.getLogger(__name__)
 
 REGISTRY_BASE = "https://registry.modelcontextprotocol.io/v0"
 DEFAULT_TIMEOUT = 15.0
@@ -123,18 +128,30 @@ def _parse(entry: dict[str, Any]) -> ServerCandidate:
 
 
 async def search(query: str, *, limit: int = 10) -> list[ServerCandidate]:
-    """Search the registry. Returns candidates in registry order.
+    """Search every configured source. Returns candidates in source order.
 
     No ranking is applied here on purpose. Deciding which candidate deserves a
     connection is a screening decision, and screening should see the field as
-    the registry presents it rather than a list this module has already
-    quietly filtered.
-    """
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        response = await client.get(
-            f"{REGISTRY_BASE}/servers", params={"search": query, "limit": limit}
-        )
-        response.raise_for_status()
-        payload = response.json()
+    the sources present it rather than a list this module has already quietly
+    filtered.
 
-    return [_parse(entry) for entry in payload.get("servers", [])]
+    Local catalogue entries come first because they are the ones an operator
+    chose to list, not because they are trusted -- they are parsed, triaged
+    and screened on exactly the same path as anything off the public registry.
+    """
+    entries = list(catalog.search(query))
+
+    try:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            response = await client.get(
+                f"{REGISTRY_BASE}/servers", params={"search": query, "limit": limit}
+            )
+            response.raise_for_status()
+            entries.extend(response.json().get("servers", []))
+    except Exception:
+        # A public registry that is down should not take the local catalogue
+        # with it. Losing a source narrows the field; it does not break
+        # discovery.
+        logger.warning("public registry unreachable for query %r", query)
+
+    return [_parse(entry) for entry in entries]

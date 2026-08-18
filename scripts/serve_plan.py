@@ -44,25 +44,42 @@ PARTIAL = FULL[:1] + [
 ]
 
 
-async def seed(which: str) -> None:
+async def seed(which: str, fill: bool, port: int) -> None:
     inventory = {t.name: t for t in (FULL if which == "full" else PARTIAL)}
     task = TASK if which == "full" else TASK + " Then post a welcome note in the team chat."
     plan, seconds = await plan_task(task, inventory)
-    approval = STORE.add(PlanApproval(plan=plan))
     print(f"  planned in {seconds:.2f}s: {plan.summary}")
-    print(f"  http://127.0.0.1:8000/plan/{approval.id}")
+
+    if fill and plan.missing:
+        from toolsmith.planning.fill import fill_gaps
+        from toolsmith.sandbox.backends import get_sandbox
+
+        print(f"  filling {len(plan.missing)} gap(s)...")
+        plan.fills = await fill_gaps(
+            plan.missing,
+            sandbox=get_sandbox(),
+            attached_tool_names=list(inventory),
+        )
+        for f in plan.fills:
+            print(f"    filled: {f.step.action[:44]:44} <- {f.tool_name} "
+                  f"({f.server.name}) {f.verdict.decision} {f.verdict.granted_scopes}")
+        print(f"  now: {plan.summary}  feasible={plan.feasible}")
+
+    approval = STORE.add(PlanApproval(plan=plan))
+    print(f"  http://127.0.0.1:{port}/plan/{approval.id}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--which", choices=["full", "partial", "both"], default="both")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--fill", action="store_true")
     args = parser.parse_args()
 
     async def seed_all():
         for which in (["full", "partial"] if args.which == "both" else [args.which]):
-            await seed(which)
-            await asyncio.sleep(4.2)
+            await seed(which, args.fill, args.port)
+            await asyncio.sleep(2)
 
     asyncio.run(seed_all())
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")

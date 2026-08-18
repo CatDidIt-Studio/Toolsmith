@@ -27,6 +27,13 @@
   .gap  .mark { color:var(--withhold); }
   .gap  p { color:var(--ink-2); }
 
+  .newtool .mark { color:var(--accent); }
+  .newtool p { color:var(--ink); }
+  .newgrant { background:color-mix(in srgb, var(--accent) 5%, transparent); }
+  .newgrant .mark { color:var(--accent); }
+  .origin { margin-top:.5rem; padding-top:.5rem; font-size:.78rem;
+            color:var(--ink-3); border-top:1px dashed var(--line-soft); }
+  .origin .flags { color:var(--warn); font-family:var(--mono); font-size:.72rem; }
   .gaps { margin-top:1rem; padding:.85rem 1rem; border-radius:10px;
           background:var(--withhold-bg); }
   .gaps h3 { margin:0 0 .3rem; font-size:.78rem; text-transform:uppercase;
@@ -80,11 +87,20 @@
       </div>
     {% endfor %}
 
-    {% if a.plan.missing %}
+    {% for f in a.plan.fills %}
+      <div class="step newtool">
+        <span class="mark">+</span>
+        <p>{{ f.step.action }}
+          <span class="via">needs a tool Toolsmith does not have — found
+            <code>{{ f.tool_name }}</code> from {{ f.server.name }}</span></p>
+      </div>
+    {% endfor %}
+
+    {% if a.plan.unfilled %}
       <div class="gaps">
         <h3>Nothing can do these</h3>
-        <p class="lede">The task cannot be completed as asked.</p>
-        {% for s in a.plan.missing %}
+        <p class="lede">Searched, and found nothing that would close them.</p>
+        {% for s in a.plan.unfilled %}
           <div class="step gap">
             <span class="mark">✕</span>
             <p>{{ s.action }}<span class="via">needs {{ s.needs or "a tool that can do this" }}</span></p>
@@ -106,9 +122,40 @@
         </div>
       {% endfor %}
     {% else %}
-      <p class="lede">No permissions are exercised by this task.</p>
+      <p class="lede">No permissions are exercised by tools you already have.</p>
     {% endif %}
   </div>
+
+  {% if a.plan.fills %}
+  <div class="sec newgrant">
+    <h2>New — granted to tools you do not have yet</h2>
+    <p class="lede">
+      Approving also attaches {{ a.plan.fills | length }} new
+      tool{{ "" if a.plan.fills | length == 1 else "s" }}. Each was screened
+      before being offered, and each gets only what its step needs.
+    </p>
+    {% for m in a.plan.new_footprint %}
+      <div class="perm">
+        <span class="mark">+</span>
+        <p>{{ m.consequence }}<span class="rk {{ m.risk }}">{{ m.risk }}</span>
+           <code class="via">{{ m.scope }}</code></p>
+      </div>
+    {% endfor %}
+
+    {% for f in a.plan.fills %}
+      <div class="origin">
+        <code>{{ f.tool_name }}</code> — {{ f.server.name }} v{{ f.server.version }},
+        {{ "signed" if f.candidate.signed else "unsigned" }},
+        registry {{ f.server.status }}
+        {% if f.verdict.findings %}
+          <span class="flags">
+            {% for fd in f.verdict.findings %}{% if fd.severity != "info" %}{{ fd.code.value }} {% endif %}{% endfor %}
+          </span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <div class="sec">
     {% if a.decision != "pending" %}
@@ -117,13 +164,18 @@
       </p>
     {% elif not a.approvable %}
       <p class="blocked-note">
-        {{ a.plan.missing | length }} of {{ a.plan.steps | length }} steps have no
-        tool, so this is not offered for approval. Nothing has run.
+        {{ a.plan.unfilled | length }} of {{ a.plan.steps | length }} steps have no
+        tool, and nothing was found that would close them, so this is not offered
+        for approval. Nothing has run.
       </p>
     {% else %}
       <form method="post" action="/plan/{{ a.id }}" class="actions">
         <button class="primary" name="decision" value="approved" type="submit">
-          Approve all {{ a.plan.steps | length }} steps
+          {% if a.plan.fills %}
+            Attach {{ a.plan.fills | length }} tool{{ "" if a.plan.fills | length == 1 else "s" }} and run {{ a.plan.steps | length }} steps
+          {% else %}
+            Approve all {{ a.plan.steps | length }} steps
+          {% endif %}
         </button>
         <button name="decision" value="denied" type="submit">Cancel</button>
       </form>

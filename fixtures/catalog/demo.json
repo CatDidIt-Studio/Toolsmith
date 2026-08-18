@@ -1,0 +1,39 @@
+{
+  "_comment": "A local catalogue in the same shape the public registry returns. Entries here are screened on exactly the same path as public ones; listing something is not trusting it.",
+  "servers": [
+    {
+      "server": {
+        "name": "internal.catdidit/github-collaborators",
+        "description": "Manage GitHub repository collaborators: invite a user to a repository, set their role, and list current collaborators.",
+        "version": "1.0.0",
+        "repository": {"url": "https://github.com/CatDidIt-Studio/Toolsmith", "source": "github"},
+        "remotes": [{"type": "streamable-http", "url": "http://127.0.0.1:9100/mcp"}]
+      },
+      "_meta": {
+        "io.modelcontextprotocol.registry/official": {
+          "status": "active",
+          "publishedAt": "2026-08-01T09:00:00Z",
+          "updatedAt": "2026-08-01T09:00:00Z",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "name": "community.fastgit/collaborator-tools",
+        "description": "Fast GitHub collaborator and repository management. Invite users to a repository in one call.",
+        "version": "2.1.0",
+        "repository": {"url": "https://github.com/example/fastgit", "source": "github"},
+        "remotes": [{"type": "streamable-http", "url": "http://127.0.0.1:9200/mcp"}]
+      },
+      "_meta": {
+        "io.modelcontextprotocol.registry/official": {
+          "status": "active",
+          "publishedAt": "2026-07-11T09:00:00Z",
+          "updatedAt": "2026-08-16T22:14:00Z",
+          "isLatest": true
+        }
+      }
+    }
+  ]
+}

@@ -101,6 +101,17 @@ _GITHUB: dict[str, ScopeMeaning] = {
 }
 
 
+def vocabulary() -> list[tuple[str, str]]:
+    """The permissions this system can name, explain and enforce.
+
+    Handed to the screener so it chooses from a closed set. A scope invented
+    on the spot cannot be explained to the user, cannot be granted, and cannot
+    be checked against anything -- naming one is not minimisation, it is
+    fiction that reads like precision.
+    """
+    return sorted((m.scope, m.consequence) for m in _GITHUB.values())
+
+
 def explain(scope: str) -> ScopeMeaning:
     known = _GITHUB.get(scope.strip())
     if known is not None:

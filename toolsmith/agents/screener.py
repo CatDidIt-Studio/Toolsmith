@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from google.adk.agents import LlmAgent
 
+from toolsmith.approval.scopes import vocabulary
 from toolsmith.config import DETERMINISTIC, SCREENER_MODEL
 from toolsmith.screening.schema import Verdict
 
@@ -102,8 +103,16 @@ Put the minimum set of scopes that still performs the described function in
 `granted_scopes`, and what was asked for in `requested_scopes`. When in doubt,
 grant less.
 
-`granted_scopes` is not restricted to a subset of what was requested. Name the
-narrowest permission that actually performs the function, even if the
+`granted_scopes` is not restricted to a subset of what was requested, and is
+not conditional on anything having been requested at all. MCP has no standard
+way for a server to declare the permissions it needs, so `requested_scopes` is
+frequently empty even for a tool that plainly writes to something. An empty
+request is not a claim that the tool needs nothing; it is the absence of a
+claim. Name the permissions the described function would actually require,
+either way -- a tool that invites collaborators needs the permission to do
+that whether or not it said so.
+
+Name the narrowest permission that performs the function, even if the
 publisher never offered it in that form -- if it asks for broad account access
 to file an issue, the answer is the issue permission, not a slightly smaller
 piece of account access.
@@ -137,8 +146,21 @@ when the excess cannot be cut away: the tool cannot function without the
 dangerous scope, or what it asks for is catastrophic regardless of intent,
 such as deleting repositories or administering an organisation.
 
+Choose permission names only from this list. It is everything this system can
+explain to the user and check afterwards, so a name outside it cannot be
+granted, cannot be shown as anything but unknown, and cannot be enforced --
+inventing one is not precision, it only looks like it. If nothing on the list
+fits, grant nothing and say why in a finding.
+
+{vocabulary}
+
 Return the schema and nothing else.
 """
+
+
+def _instruction() -> str:
+    listed = "\n".join(f"  {scope:24} {meaning}" for scope, meaning in vocabulary())
+    return INSTRUCTION.format(vocabulary=listed)
 
 
 def build_screener(*, as_root: bool = False) -> LlmAgent:
@@ -155,7 +177,7 @@ def build_screener(*, as_root: bool = False) -> LlmAgent:
         name="screener",
         model=SCREENER_MODEL,
         description="Judges a candidate MCP tool definition in isolation.",
-        instruction=INSTRUCTION,
+        instruction=_instruction(),
         # Untrusted zone: no tools, no history, no way back.
         tools=[],
         generate_content_config=DETERMINISTIC,

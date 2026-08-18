@@ -63,6 +63,30 @@ class TaskPlan:
     task: str
     steps: list[PlannedStep]
     inventory: dict[str, ToolInventory]
+    # Screened candidates that would close the gaps, if any were found.
+    fills: list = field(default_factory=list)
+
+    @property
+    def filled_steps(self) -> set[int]:
+        return {id(fill.step) for fill in self.fills}
+
+    @property
+    def unfilled(self) -> list[PlannedStep]:
+        """Gaps nothing was found for. These are what make a plan impossible."""
+        filled = self.filled_steps
+        return [s for s in self.missing if id(s) not in filled]
+
+    @property
+    def new_footprint(self) -> list[ScopeMeaning]:
+        """Permissions that would be granted to tools not yet attached.
+
+        Kept apart from the footprint of held tools on purpose. Approving this
+        plan does two things -- runs a task and hands authority to something
+        new -- and a card that adds those together is asking for one consent
+        while collecting two.
+        """
+        scopes = {scope for fill in self.fills for scope in fill.granted_scopes}
+        return explain_all(sorted(scopes))
 
     @property
     def held(self) -> list[PlannedStep]:
@@ -74,8 +98,8 @@ class TaskPlan:
 
     @property
     def feasible(self) -> bool:
-        """Every step has something that can do it."""
-        return bool(self.steps) and not self.missing
+        """Every step has something that can do it, held or offered."""
+        return bool(self.steps) and not self.unfilled
 
     @property
     def used_tools(self) -> list[ToolInventory]:
@@ -108,8 +132,9 @@ class TaskPlan:
         if not self.steps:
             return "nothing to do"
         if self.feasible:
+            new = f", {len(self.fills)} new tool(s)" if self.fills else ""
             return (
-                f"{len(self.steps)} steps, all covered, "
-                f"{len(self.footprint)} permissions used"
+                f"{len(self.steps)} steps, all covered{new}, "
+                f"{len(self.footprint) + len(self.new_footprint)} permissions used"
             )
-        return f"{len(self.missing)} of {len(self.steps)} steps have no tool"
+        return f"{len(self.unfilled)} of {len(self.steps)} steps have no tool"
