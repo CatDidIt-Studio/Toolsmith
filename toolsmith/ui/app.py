@@ -45,10 +45,34 @@ app = FastAPI(title="Toolsmith")
 async def index(request: Request) -> HTMLResponse:
     pending = STORE.pending()
     if len(pending) == 1:
-        return RedirectResponse(f"/approve/{pending[0].id}", status_code=303)
+        one = pending[0]
+        route = "plan" if hasattr(one, "plan") else "approve"
+        return RedirectResponse(f"/{route}/{one.id}", status_code=303)
     return TEMPLATES.TemplateResponse(
         request, "index.html", {"requests": STORE.all()}
     )
+
+
+@app.get("/plan/{plan_id}", response_class=HTMLResponse)
+async def plan_card(request: Request, plan_id: str) -> HTMLResponse:
+    approval = STORE.get(plan_id)
+    if approval is None:
+        raise HTTPException(status_code=404, detail="no such plan")
+    return TEMPLATES.TemplateResponse(request, "plan.html", {"a": approval})
+
+
+@app.post("/plan/{plan_id}")
+async def decide_plan(plan_id: str, decision: str = Form(...)) -> RedirectResponse:
+    approval = STORE.get(plan_id)
+    if approval is None:
+        raise HTTPException(status_code=404, detail="no such plan")
+    if decision not in ("approved", "denied"):
+        raise HTTPException(status_code=400, detail="decision must be approved or denied")
+    try:
+        approval.answer(decision)  # type: ignore[arg-type]
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return RedirectResponse(f"/plan/{plan_id}", status_code=303)
 
 
 @app.get("/approve/{request_id}", response_class=HTMLResponse)

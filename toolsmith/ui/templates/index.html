@@ -22,10 +22,19 @@
 <h1>Approval requests</h1>
 <div class="list">
   {% for r in requests %}
-    <a class="row" href="/approve/{{ r.id }}">
-      <span class="name">{{ r.tool.tool_name }} <span style="color:var(--ink-3)">· {{ r.provenance.server_name }}</span></span>
-      <span class="state">{{ r.decision }}</span>
-    </a>
+    {% if r.plan is defined %}
+      <a class="row" href="/plan/{{ r.id }}">
+        <span class="name">{{ r.plan.task[:64] }}{% if r.plan.task|length > 64 %}…{% endif %}
+          <span style="color:var(--ink-3)">· {{ r.plan.summary }}</span></span>
+        <span class="state">{{ r.decision }}</span>
+      </a>
+    {% else %}
+      <a class="row" href="/approve/{{ r.id }}">
+        <span class="name">{{ r.tool.tool_name }}
+          <span style="color:var(--ink-3)">· {{ r.provenance.server_name }}</span></span>
+        <span class="state">{{ r.decision }}</span>
+      </a>
+    {% endif %}
   {% else %}
     <p class="empty">Nothing waiting. Toolsmith has everything it needs.</p>
   {% endfor %}

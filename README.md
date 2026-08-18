@@ -1,30 +1,46 @@
 # Toolsmith
 
-**An agent that acquires its own capabilities — safely.**
+**Know what a task will touch before you let it run.**
 
-Most agents are shipped with a fixed set of tools. Toolsmith is shipped with
-none. When it meets a request it cannot serve, it goes and finds the tool:
-searches MCP registries for candidates, screens each one in isolation,
-computes the minimum privilege that still does the job, and attaches it only
-after a human approves a card showing exactly what was asked for versus what
-was granted.
+An agent can only do what its tools and permissions allow, so the real
+question before handing over a job is not "which model" but *what will this
+actually reach*. Toolsmith answers that first: it works out every step a task
+requires, which held tool performs each one, and the exact set of permissions
+those steps exercise — then asks once, before anything happens.
 
-This agent does not build tools. It chooses them.
+If some step has no tool, it says so up front, and refuses to ask for
+approval at all. Being told a task is impossible now is worth more than
+discovering it halfway through, with permission already granted.
+
+The unit of consent is the task, not the tool. Nobody wants to be interrupted
+four times about servers they have never heard of.
 
 > Built for the Google **All Things Agentic** hackathon — *Fortified Enterprise
 > Fleet* track. Gemini 3.5 · ADK 2.7 · Cloud Run.
 
 ---
 
-## Why the hard part is judgment, not discovery
+## One approval, honestly costed
 
-Searching a registry is search. Attaching a server at runtime is a framework
-feature. Both are commodity — Composio, Pipedream and Dynamic MCP already do
-them.
+Bundling only works if the bundle is shown honestly. A single approval that
+hides what it covers is how consent screens became something people click
+past, so the card carries the whole footprint rather than a summary of it:
+every permission in plain words, its risk, and nothing the task would not
+touch. A tool that is attached but unused for this job contributes nothing —
+answering with the agent's whole standing authority would be the same
+overstatement this exists to correct.
 
-The uncontested half is deciding, in the second before you attach it, whether
-this particular server should be trusted with a credential. Existing MCP
-evaluation tools solve the opposite problem under opposite constraints:
+Permission names are never shown bare. Almost nobody knows GitHub's `repo`
+scope reaches every private repository on the account, which is exactly why
+over-broad access gets approved: the string looks modest and the consequence
+is written nowhere the person clicking can see it.
+
+## Screening, for anything not already trusted
+
+Where a tool is not already held, the same engine screens candidates before
+they can be attached: registry discovery, an isolated probe, and a verdict.
+Existing MCP evaluation tools solve the opposite problem under opposite
+constraints:
 
 |                | Existing MCP eval / CI | Toolsmith screening |
 | -------------- | ---------------------- | ------------------- |

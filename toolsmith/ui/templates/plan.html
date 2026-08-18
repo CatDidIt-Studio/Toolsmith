@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Approve this task?{% endblock %}
+
+{% block head %}
+<style>
+  .eyebrow { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase;
+             color:var(--ink-3); margin-bottom:.5rem; }
+  .card { background:var(--surface); border:1px solid var(--line);
+          border-radius:14px; overflow:hidden; }
+  .sec { padding:1.15rem 1.35rem; border-top:1px solid var(--line-soft); }
+  .sec:first-child { border-top:0; }
+  .sec h2 { margin:0 0 .85rem; font-size:.72rem; letter-spacing:.09em;
+            text-transform:uppercase; color:var(--ink-3); font-weight:600;
+            display:flex; justify-content:space-between; align-items:baseline; }
+  .sec h2 .count { letter-spacing:0; text-transform:none; font-weight:500; }
+
+  .task { margin:0; font-size:1.05rem; line-height:1.5; }
+  .lede { margin:0 0 .6rem; color:var(--ink-2); font-size:.9rem; }
+
+  .step { display:flex; gap:.7rem; padding:.6rem 0;
+          border-top:1px dashed var(--line-soft); }
+  .step:first-of-type { border-top:0; }
+  .mark { flex:none; width:1.1rem; font-weight:700; line-height:1.5; }
+  .step p { margin:0; }
+  .via { display:block; margin-top:.15rem; color:var(--ink-3); }
+  .held .mark { color:var(--grant); }
+  .gap  .mark { color:var(--withhold); }
+  .gap  p { color:var(--ink-2); }
+
+  .gaps { margin-top:1rem; padding:.85rem 1rem; border-radius:10px;
+          background:var(--withhold-bg); }
+  .gaps h3 { margin:0 0 .3rem; font-size:.78rem; text-transform:uppercase;
+             letter-spacing:.07em; color:var(--withhold); }
+
+  .perm { display:flex; gap:.7rem; padding:.55rem 0;
+          border-top:1px dashed var(--line-soft); }
+  .perm:first-of-type { border-top:0; }
+  .perm .mark { color:var(--grant); }
+  .perm p { margin:0; }
+  .rk { display:inline-block; margin-left:.4rem; padding:.05rem .4rem;
+        border-radius:999px; font-size:.62rem; font-weight:700;
+        letter-spacing:.05em; text-transform:uppercase; vertical-align:.08em; }
+  .rk.low{background:var(--grant-bg);color:var(--grant)}
+  .rk.medium{background:var(--warn-bg);color:var(--warn)}
+  .rk.high,.rk.critical{background:var(--block-bg);color:var(--block)}
+
+  .actions { display:flex; gap:.6rem; flex-wrap:wrap; }
+  button { font:inherit; font-weight:600; padding:.6rem 1.1rem; border-radius:9px;
+           cursor:pointer; border:1px solid var(--line);
+           background:var(--surface); color:var(--ink); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.06); }
+  .undo { margin:.8rem 0 0; font-size:.82rem; color:var(--ink-3); }
+  .settled { padding:.9rem 1.1rem; border-radius:10px; font-weight:600;
+             background:var(--grant-bg); color:var(--grant); }
+  .settled.denied { background:var(--withhold-bg); color:var(--withhold); }
+  .blocked-note { padding:.9rem 1.1rem; border-radius:10px;
+                  background:var(--block-bg); color:var(--block); font-size:.9rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<p class="eyebrow">Before anything runs</p>
+
+<div class="card">
+
+  <div class="sec">
+    <p class="task">{{ a.plan.task }}</p>
+  </div>
+
+  <div class="sec">
+    <h2>The plan
+      <span class="count">{{ a.plan.steps | length }} steps ·
+        {{ a.plan.held | length }} covered</span></h2>
+
+    {% for s in a.plan.held %}
+      <div class="step held">
+        <span class="mark">✓</span>
+        <p>{{ s.action }}<code class="via">{{ s.tool }}</code></p>
+      </div>
+    {% endfor %}
+
+    {% if a.plan.missing %}
+      <div class="gaps">
+        <h3>Nothing can do these</h3>
+        <p class="lede">The task cannot be completed as asked.</p>
+        {% for s in a.plan.missing %}
+          <div class="step gap">
+            <span class="mark">✕</span>
+            <p>{{ s.action }}<span class="via">needs {{ s.needs or "a tool that can do this" }}</span></p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="sec">
+    <h2>What this will touch</h2>
+    {% if a.plan.footprint %}
+      <p class="lede">Everything the task would use, and nothing it would not.</p>
+      {% for m in a.plan.footprint %}
+        <div class="perm">
+          <span class="mark">✓</span>
+          <p>{{ m.consequence }}<span class="rk {{ m.risk }}">{{ m.risk }}</span>
+             <code class="via">{{ m.scope }}</code></p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="lede">No permissions are exercised by this task.</p>
+    {% endif %}
+  </div>
+
+  <div class="sec">
+    {% if a.decision != "pending" %}
+      <p class="settled {{ 'denied' if a.decision == 'denied' else '' }}">
+        {{ "Approved — running now." if a.decision == "approved" else "Cancelled. Nothing ran." }}
+      </p>
+    {% elif not a.approvable %}
+      <p class="blocked-note">
+        {{ a.plan.missing | length }} of {{ a.plan.steps | length }} steps have no
+        tool, so this is not offered for approval. Nothing has run.
+      </p>
+    {% else %}
+      <form method="post" action="/plan/{{ a.id }}" class="actions">
+        <button class="primary" name="decision" value="approved" type="submit">
+          Approve all {{ a.plan.steps | length }} steps
+        </button>
+        <button name="decision" value="denied" type="submit">Cancel</button>
+      </form>
+      <p class="undo">Nothing has happened yet. You are asked once, now, and not again while it runs.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from toolsmith.approval.scopes import Risk, ScopeMeaning, explain_all, overall_risk
+from toolsmith.planning.schema import TaskPlan
 from toolsmith.screening.candidate import Candidate
 from toolsmith.screening.schema import Verdict
 
@@ -127,15 +128,61 @@ class ApprovalRequest:
         self._answered.set()
 
 
+@dataclass
+class PlanApproval:
+    """A whole task, costed, waiting on one decision.
+
+    This is the consent unit the product settled on. Asking per tool means
+    interrupting someone three times about things they have never heard of;
+    asking per task means asking once, about the thing they actually wanted.
+
+    Bundling only works if the bundle is shown honestly, which is why the plan
+    carries its footprint and its gaps rather than a summary of them. A single
+    approval that hides what it covers is how consent screens became something
+    people click past.
+    """
+
+    plan: "TaskPlan"
+    id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    decision: Decision = "pending"
+    _answered: asyncio.Event = field(default_factory=asyncio.Event, repr=False)
+
+    @property
+    def approvable(self) -> bool:
+        # A plan with a step nothing can perform is not offered for approval.
+        # Approving it would authorise a footprint for work that cannot finish.
+        return self.plan.feasible
+
+    @property
+    def risk(self) -> Risk:
+        return self.plan.risk
+
+    async def wait(self, timeout: float | None = None) -> Decision:
+        try:
+            await asyncio.wait_for(self._answered.wait(), timeout)
+        except asyncio.TimeoutError:
+            self.decision = "denied"
+        return self.decision
+
+    def answer(self, decision: Literal["approved", "denied"]) -> None:
+        if self.decision != "pending":
+            return
+        if decision == "approved" and not self.approvable:
+            raise ValueError(f"plan {self.id} has uncovered steps and cannot be approved")
+        self.decision = decision
+        self._answered.set()
+
+
 class ApprovalStore:
     def __init__(self) -> None:
-        self._requests: dict[str, ApprovalRequest] = {}
+        self._requests: dict[str, ApprovalRequest | PlanApproval] = {}
 
-    def add(self, request: ApprovalRequest) -> ApprovalRequest:
+    def add(self, request):
         self._requests[request.id] = request
         return request
 
-    def get(self, request_id: str) -> ApprovalRequest | None:
+    def get(self, request_id: str):
         return self._requests.get(request_id)
 
     def pending(self) -> list[ApprovalRequest]:
