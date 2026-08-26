@@ -140,3 +140,29 @@ async def fill_gaps(
 
     results = await asyncio.gather(*(one(step) for step in steps))
     return [fill for fill in results if fill is not None]
+
+
+def attachments_from(fills: list[GapFill]) -> list["Attachment"]:
+    """Turn approved fills into attachments the executor can actually use.
+
+    This is the only place a screened candidate becomes something the agent
+    holds, and it runs after approval rather than after screening. A candidate
+    that passed screening has been judged safe to *offer*; it is the person
+    saying yes that makes it safe to attach, and keeping those two steps apart
+    is the difference between a card and a notification.
+
+    Each one is granted only the tool that closed its step. A server offering
+    forty tools does not get forty tools attached because one of them was
+    useful.
+    """
+    from toolsmith.attach.toolset import Attachment
+
+    return [
+        Attachment(
+            server_id=fill.server.name,
+            url=fill.endpoint,
+            granted_tools=(fill.tool_name,),
+            granted_scopes=fill.granted_scopes,
+        )
+        for fill in fills
+    ]

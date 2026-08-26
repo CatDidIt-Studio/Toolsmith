@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from google.adk.agents import LlmAgent
 
-from toolsmith.config import DETERMINISTIC, ORCHESTRATOR_MODEL
+from toolsmith.config import RETRY, DETERMINISTIC, ORCHESTRATOR_MODEL
 from toolsmith.planning.schema import DraftPlan
 
 INSTRUCTION = """\
@@ -52,6 +52,7 @@ def build_planner(*, as_root: bool = False) -> LlmAgent:
         instruction=INSTRUCTION,
         tools=[],
         generate_content_config=DETERMINISTIC,
+        retry_config=RETRY,
         include_contents="none",
         output_schema=DraftPlan,
         mode="task" if as_root else "single_turn",

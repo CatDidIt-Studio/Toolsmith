@@ -22,7 +22,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools.base_tool import BaseTool
 
 from toolsmith.attach.toolset import ToolsmithToolset
-from toolsmith.config import DETERMINISTIC, ORCHESTRATOR_MODEL
+from toolsmith.config import RETRY, DETERMINISTIC, ORCHESTRATOR_MODEL
 from toolsmith.planning.schema import TaskPlan
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class ExecutionRecord:
 
 
 def _permitted_names(plan: TaskPlan) -> set[str]:
-    return {step.tool for step in plan.held if step.tool}
+    return {tool for _, tool in plan.executable}
 
 
 def _matches(called: str, permitted: set[str]) -> bool:
@@ -108,6 +108,7 @@ def build_executor(plan: TaskPlan, record: ExecutionRecord) -> LlmAgent:
         description="Carries out an approved plan.",
         instruction=INSTRUCTION,
         generate_content_config=DETERMINISTIC,
+        retry_config=RETRY,
         tools=[ToolsmithToolset()],
         before_tool_callback=enforce(plan, record),
     )
@@ -115,6 +116,6 @@ def build_executor(plan: TaskPlan, record: ExecutionRecord) -> LlmAgent:
 
 def plan_brief(plan: TaskPlan) -> str:
     lines = [f"Task: {plan.task}", "", "Approved steps:"]
-    for index, step in enumerate(plan.held, start=1):
-        lines.append(f"{index}. {step.action}  (use {step.tool})")
+    for index, (step, tool) in enumerate(plan.executable, start=1):
+        lines.append(f"{index}. {step.action}  (use {tool})")
     return "\n".join(lines)

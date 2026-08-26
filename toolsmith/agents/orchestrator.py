@@ -20,7 +20,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool, ToolContext
 
 from toolsmith.attach.toolset import ToolsmithToolset
-from toolsmith.config import DETERMINISTIC, ORCHESTRATOR_MODEL
+from toolsmith.config import RETRY, DETERMINISTIC, ORCHESTRATOR_MODEL
 from toolsmith.pipeline import acquire, commit
 from toolsmith.sandbox.backends import get_sandbox
 
@@ -108,6 +108,7 @@ def build_orchestrator() -> LlmAgent:
         description="Acts for the user, acquiring tools it lacks.",
         instruction=INSTRUCTION,
         generate_content_config=DETERMINISTIC,
+        retry_config=RETRY,
         tools=[
             # Starts empty; fills as things are approved.
             ToolsmithToolset(),

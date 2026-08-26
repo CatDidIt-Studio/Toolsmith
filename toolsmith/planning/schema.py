@@ -102,6 +102,22 @@ class TaskPlan:
         return bool(self.steps) and not self.unfilled
 
     @property
+    def executable(self) -> list[tuple[PlannedStep, str]]:
+        """Every step that will actually run, paired with the tool that runs it.
+
+        Held steps and filled gaps both belong here. Keeping them apart was a
+        real defect: `held` counts only steps that already had a tool, so a
+        plan whose gap had been filled and approved briefed the executor on
+        the other steps, permitted only those, and quietly did less than the
+        user agreed to -- while every check that compared counts against
+        `held` reported success, because it was asking the same wrong
+        question.
+        """
+        pairs = [(step, step.tool) for step in self.held if step.tool]
+        pairs.extend((fill.step, fill.tool_name) for fill in self.fills)
+        return pairs
+
+    @property
     def used_tools(self) -> list[ToolInventory]:
         seen: dict[str, ToolInventory] = {}
         for step in self.held:

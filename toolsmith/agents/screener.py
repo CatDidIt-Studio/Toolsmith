@@ -23,7 +23,7 @@ from __future__ import annotations
 from google.adk.agents import LlmAgent
 
 from toolsmith.approval.scopes import vocabulary
-from toolsmith.config import DETERMINISTIC, SCREENER_MODEL
+from toolsmith.config import RETRY, DETERMINISTIC, SCREENER_MODEL
 from toolsmith.screening.schema import Verdict
 
 INSTRUCTION = """\
@@ -112,6 +112,12 @@ claim. Name the permissions the described function would actually require,
 either way -- a tool that invites collaborators needs the permission to do
 that whether or not it said so.
 
+Some tools genuinely need nothing. A description that says it reads only
+public data, or that no authentication is required, is describing a function
+that runs on no permission at all -- grant none. Inferring one anyway because
+the tool touches issues or repositories is the same over-permissioning this is
+supposed to prevent, arrived at from the other direction.
+
 Name the narrowest permission that performs the function, even if the
 publisher never offered it in that form -- if it asks for broad account access
 to file an issue, the answer is the issue permission, not a slightly smaller
@@ -181,6 +187,7 @@ def build_screener(*, as_root: bool = False) -> LlmAgent:
         # Untrusted zone: no tools, no history, no way back.
         tools=[],
         generate_content_config=DETERMINISTIC,
+        retry_config=RETRY,
         include_contents="none",
         output_schema=Verdict,
         mode="task" if as_root else "single_turn",

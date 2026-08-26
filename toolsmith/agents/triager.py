@@ -27,7 +27,7 @@ from __future__ import annotations
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
 
-from toolsmith.config import DETERMINISTIC, SCOUT_MODEL
+from toolsmith.config import RETRY, DETERMINISTIC, SCOUT_MODEL
 
 
 class RelevancePick(BaseModel):
@@ -74,6 +74,7 @@ def build_triager(*, as_root: bool = False) -> LlmAgent:
         instruction=INSTRUCTION,
         tools=[],
         generate_content_config=DETERMINISTIC,
+        retry_config=RETRY,
         include_contents="none",
         output_schema=RelevancePick,
         mode="task" if as_root else "single_turn",

@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from google.adk.workflow._retry_config import RetryConfig
 from google.genai import types
 
 # Credentials live outside the repo, following the per-project convention in
@@ -41,6 +42,26 @@ DEMO_REPO = os.getenv("TOOLSMITH_DEMO_REPO", "CatDidIt-Studio/Toolsmith")
 # unchanged registry, which is both a bad security property and a bad thing to
 # stake a live demo on.
 DETERMINISTIC = types.GenerateContentConfig(temperature=0.0)
+
+# Transient upstream failures are the biggest threat to an unedited live run:
+# a 503 mid-take cannot be edited out, and the submission asks for one
+# continuous execution. Every isolated agent here answers a closed question and
+# is safe to retry, so retrying is strictly better than failing.
+RETRY = RetryConfig(
+    max_attempts=4,
+    initial_delay=1.0,
+    max_delay=12.0,
+    backoff_factor=2.0,
+    jitter=0.3,
+)
+
+# Tried in order when a model is unavailable rather than merely slow. These are
+# separate capacity pools, so a spike on one is often not a spike on the other.
+FALLBACK_MODELS = [
+    m.strip()
+    for m in os.getenv("TOOLSMITH_FALLBACK_MODELS", "gemini-3.6-flash").split(",")
+    if m.strip()
+]
 
 # Session-state key under which approved attachments are recorded. The
 # ToolsmithToolset reads only this key when deciding what to expose.

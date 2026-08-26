@@ -13,6 +13,7 @@ model returned an empty response.
 from __future__ import annotations
 
 import json
+import logging
 import time
 import uuid
 from typing import TypeVar
@@ -21,6 +22,10 @@ from google.adk.agents import LlmAgent
 from google.adk.runners import FINISH_TASK_TOOL_NAME, InMemoryRunner
 from google.genai import types
 from pydantic import BaseModel
+
+from toolsmith.config import FALLBACK_MODELS
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -32,7 +37,44 @@ class AgentOutputError(RuntimeError):
 async def run_structured(
     agent: LlmAgent, prompt: str, schema: type[T], *, app_name: str
 ) -> tuple[T, float]:
-    """Run `agent` on `prompt` once and validate its output as `schema`."""
+    """Run `agent` on `prompt` and validate its output as `schema`.
+
+    Retries inside the agent handle a model that is slow or briefly refusing.
+    This handles the other case: a model that is out of capacity, where trying
+    the same one again just fails again more slowly. Falling back to a
+    different model is safe here because every agent using this answers a
+    closed question with a fixed schema -- there is no conversation to lose and
+    no state to reconcile.
+
+    The fallback is recorded, not hidden. Which model produced a verdict is
+    worth knowing afterwards.
+    """
+    models = [agent.model, *FALLBACK_MODELS]
+    last: Exception | None = None
+
+    for model in models:
+        agent.model = model
+        try:
+            return await _run_once(agent, prompt, schema, app_name=app_name)
+        except AgentOutputError:
+            # A schema violation is the model doing the wrong thing, not the
+            # service being unavailable. Another model will not fix it, and
+            # retrying hides a real defect behind a slower failure.
+            raise
+        except Exception as exc:  # noqa: BLE001
+            last = exc
+            if model != models[-1]:
+                logger.warning(
+                    "%s unavailable on %s (%s); falling back",
+                    agent.name, model, type(exc).__name__,
+                )
+
+    raise AgentOutputError(f"{agent.name} failed on every model: {last}")
+
+
+async def _run_once(
+    agent: LlmAgent, prompt: str, schema: type[T], *, app_name: str
+) -> tuple[T, float]:
     runner = InMemoryRunner(agent=agent, app_name=app_name)
     user_id = agent.name
     session = await runner.session_service.create_session(

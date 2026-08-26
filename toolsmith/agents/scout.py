@@ -20,7 +20,7 @@ from typing import Literal
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
 
-from toolsmith.config import DETERMINISTIC, SCOUT_MODEL
+from toolsmith.config import RETRY, DETERMINISTIC, SCOUT_MODEL
 
 
 class QueryPlan(BaseModel):
@@ -55,6 +55,7 @@ def build_scout(*, as_root: bool = False) -> LlmAgent:
         instruction=INSTRUCTION,
         tools=[],
         generate_content_config=DETERMINISTIC,
+        retry_config=RETRY,
         include_contents="none",
         output_schema=QueryPlan,
         mode="task" if as_root else "single_turn",

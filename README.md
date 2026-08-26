@@ -138,8 +138,10 @@ Discovery, sandboxed probing, screening and the approval card run end to end.
 Orchestrator wiring and the Cloud Run deployment are still outstanding.
 
 ```
-bench     23 cases   0 dangerous through   0 clean blocked   median 0.86s
-servers    6 live    0 misses
+bench       23 cases   0 dangerous through   0 clean blocked   0 wrong permission
+servers      6 live    0 misses
+rehearsal   63s of a 240s budget, against the deployed sandbox
+enforcement  out-of-plan call refused before reaching the server
 ```
 
 The bench screens tool definitions written into a file, which exercises the
