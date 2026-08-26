@@ -55,35 +55,48 @@ the restaurant wrote itself.
 
 ## Architecture
 
-The agent has to read attacker-controlled text while holding the user's
-credentials. That single fact — not task complexity — is what forces the
-process boundary.
+Two facts shape this, and neither is task complexity.
+
+The system has to read text written by whoever published a tool, while holding
+the user's credentials. Those cannot share a context, so they do not.
+
+And the material worth reading does not exist until you connect: the registry
+publishes no tool definitions, so descriptions and schemas are only visible
+after opening a session with a server nobody has vetted. First contact
+therefore happens in a disposable Cloud Run instance rather than in the
+agent's process.
 
 ```mermaid
 flowchart TB
-    subgraph trusted["Trusted zone — holds goal + credentials"]
-        O["Orchestrator<br/>gemini-3.5-flash"]
+    U(["Task"]) --> P
+
+    subgraph trusted["Trusted — holds the goal and the credentials"]
+        P["Planner<br/>gemini-3.5-flash"]
+        X["Executor<br/>bound to the approved plan"]
         T["ToolsmithToolset<br/>exposes only approved tools"]
     end
 
-    subgraph untrusted["Untrusted zone — no credentials, no history"]
-        S["Scout<br/>registry search"]
+    subgraph untrusted["Untrusted — no credentials, no history, schema-only replies"]
+        S["Scout<br/>registry queries"]
+        R["Triager<br/>answers with indices"]
         C["Static checks<br/>deterministic, no model"]
-        J["Screener (blind)<br/>gemini-3.5-flash-lite"]
+        J["Screener, blind<br/>gemini-3.5-flash-lite"]
     end
 
-    H(["Human approval card"])
-    B["Cloud Run sandbox<br/>throwaway trial call"]
+    B["Cloud Run sandbox<br/>connects, lists, dies"]
+    H(["One approval card"])
 
-    O -->|"abstracted capability request"| S
-    S --> C --> J
-    J -->|"fixed-schema verdict only"| H
-    H -->|"granted scopes"| B
-    B --> T
-    T --> O
+    P -->|"steps with no tool"| S
+    S --> R --> B
+    B -->|"tool definitions"| C --> J
+    J -->|"verdict, fixed schema"| H
+    P -->|"steps, footprint"| H
+    H -->|"approved plan"| X
+    X -->|"every call checked<br/>against the plan"| T
 ```
 
-If the screener is successfully injected, everything it can return is this:
+Nothing crosses back from the untrusted side except a schema. If the screener
+is successfully injected, this is the entire blast radius:
 
 ```python
 {'decision': 'block', 'granted_scopes': [], 'finding_codes': ['injection_in_description']}
@@ -93,7 +106,7 @@ No prose crosses the boundary, because prose is the attack.
 
 ### The isolation is enforced, not promised
 
-Each property below is an ADK construct, not a line in a prompt:
+Each property below is a construct, not a line in a prompt:
 
 | Property | Mechanism |
 | -------- | --------- |
@@ -102,7 +115,14 @@ Each property below is an ADK construct, not a line in a prompt:
 | Screener cannot plan, loop, or ask | `mode='single_turn'` |
 | Screener cannot hand back control | `disallow_transfer_to_*` |
 | Server cannot expose unapproved tools | `McpToolset(tool_filter=...)` |
-| Capability set changes mid-session | `BaseToolset.get_tools(ctx)` |
+| Executor cannot exceed the approved plan | `before_tool_callback` refuses the call |
+| First contact never touches the agent's process | Cloud Run sandbox |
+
+The last two are the ones that make a single approval safe to give. An
+approval that authorises a task and then permits whatever the agent decides
+next is a blank cheque with a consent screen attached — so out-of-plan calls
+are refused before they reach a server, and that refusal is
+[tested](scripts/check_enforcement.py) rather than asserted.
 
 ### Computation and judgment are separated
 

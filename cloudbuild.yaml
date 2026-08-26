@@ -1,0 +1,13 @@
+# Build the sandbox image from deploy/sandbox.Dockerfile with the repo root as
+# context, since the worker imports the probe module from the package.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - deploy/sandbox.Dockerfile
+      - -t
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
