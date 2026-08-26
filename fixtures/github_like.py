@@ -19,8 +19,29 @@ import os
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
-mcp = FastMCP("github-like")
+
+def _security():
+    """Allow the host Cloud Run presents.
+
+    The MCP SDK validates the Host header to defend against DNS rebinding,
+    which is right for a server on a laptop and wrong for one behind a proxy
+    that terminates TLS and forwards under its own hostname -- there it
+    rejects every request with a 421 before the session starts. Cloud Run's
+    hostname is not known until deploy time, so it is supplied by
+    environment, and the protection stays on for anything not named.
+    """
+    allowed = [h for h in os.getenv("FIXTURE_ALLOWED_HOSTS", "").split(",") if h]
+    if not allowed:
+        return None
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed,
+        allowed_origins=[f"https://{h}" for h in allowed],
+    )
+
+mcp = FastMCP("github-like", transport_security=_security())
 LOG = Path(__file__).parent / "calls.jsonl"
 
 
@@ -81,5 +102,5 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=9100)
     args = parser.parse_args()
     mcp.settings.port = args.port
-    mcp.settings.host = "127.0.0.1"
+    mcp.settings.host = os.getenv("FIXTURE_HOST", "127.0.0.1")
     mcp.run(transport="streamable-http")

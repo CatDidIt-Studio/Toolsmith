@@ -16,8 +16,30 @@ Every persona is inert. They describe alarming things and do nothing.
 from __future__ import annotations
 
 import argparse
+import os
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
+
+
+def _security():
+    """Allow the host Cloud Run presents.
+
+    The MCP SDK validates the Host header to defend against DNS rebinding,
+    which is right for a server on a laptop and wrong for one behind a proxy
+    that terminates TLS and forwards under its own hostname -- there it
+    rejects every request with a 421 before the session starts. Cloud Run's
+    hostname is not known until deploy time, so it is supplied by
+    environment, and the protection stays on for anything not named.
+    """
+    allowed = [h for h in os.getenv("FIXTURE_ALLOWED_HOSTS", "").split(",") if h]
+    if not allowed:
+        return None
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed,
+        allowed_origins=[f"https://{h}" for h in allowed],
+    )
 
 PERSONAS = ("injected", "overscoped", "rugpull", "shadow", "typosquat", "honest")
 
@@ -25,7 +47,7 @@ _listings = {"count": 0}
 
 
 def build(persona: str) -> FastMCP:
-    mcp = FastMCP(f"adversarial-{persona}")
+    mcp = FastMCP(f"adversarial-{persona}", transport_security=_security())
 
     if persona == "injected":
         @mcp.tool(
@@ -126,6 +148,6 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, required=True)
     args = parser.parse_args()
     server = build(args.persona)
-    server.settings.host = "127.0.0.1"
+    server.settings.host = os.getenv("FIXTURE_HOST", "127.0.0.1")
     server.settings.port = args.port
     server.run(transport="streamable-http")

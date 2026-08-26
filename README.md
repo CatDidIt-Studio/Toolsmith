@@ -193,6 +193,36 @@ registries. Two of those descriptions are now in the bench verbatim.
 The registry is also unreliable about what a server *is*: one entry named for
 Slack turned out to serve sixty financial-data tools.
 
+## Deployed
+
+The sandbox runs on Cloud Run, which is what makes the isolation claim a fact
+rather than a description — first contact with an unvetted server happens in a
+container that holds no credentials and is torn down afterwards.
+
+```
+toolsmith-sandbox    the probe service; the only component that must be remote
+toolsmith-github     an MCP server the demo can actually complete a task with
+toolsmith-injected   an MCP server that carries an injected instruction
+```
+
+The two servers are deployed rather than run locally for the same reason: a
+sandbox on Cloud Run cannot reach `localhost`, and a sandbox that can is not
+isolated. Every connection in the demo is a real hop between real services.
+
+```bash
+export TOOLSMITH_SANDBOX_URL=https://toolsmith-sandbox-111259597572.us-central1.run.app
+export TOOLSMITH_CATALOG=fixtures/catalog/demo.json
+```
+
+Without `TOOLSMITH_SANDBOX_URL` the system refuses to probe rather than
+falling back to the local path. A misconfigured deploy that quietly started
+connecting from the agent's own process would look exactly like everything
+working.
+
+Pre-flight against that deployment: plan in ~3.5s, and ~10s including
+discovery, an isolated probe and screening of every candidate for each gap.
+That is before the task starts, not during it.
+
 ## Setup
 
 ```bash
