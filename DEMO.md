@@ -19,8 +19,10 @@ service page showing request traffic.
 
 ## The run
 
-**0:00 — the problem.** One sentence: an agent can only do what its tools and
-permissions allow, and nobody can see that list before saying yes.
+**0:00 — the problem.** Show the person, not the architecture: someone running
+onboarding who is not a developer and not on a security team, being asked to
+approve servers they have never heard of. Have a permission dialog on screen
+showing a bare scope name.
 
 **0:25 — ask for something.** Onboarding a contributor: open an issue, label
 it, invite them, post a welcome note. Four steps, and the agent holds one tool.
@@ -42,7 +44,9 @@ words. `administration:write` reads as "change settings and collaborators",
 marked high. One approval, given once.
 
 **2:40 — it runs.** Issue created, collaborator invited, against the real
-server. Show the calls landing.
+server. Show the calls landing, and say the number: five approvals became one.
+If there is time, run the read-only task too and show it going through with
+none.
 
 **3:05 — the contract holds.** `python scripts/check_enforcement.py`. The
 executor is handed three tools, told to use all three, and the plan names one.
@@ -61,3 +65,5 @@ found two of the false positives.
   proven, and that is a different sentence.
 - Show the local sandbox. It provides no isolation and saying otherwise on
   camera would misrepresent the architecture.
+- Skip the warm-up run. A cold Cloud Run instance turns gap-filling from eight
+  seconds into nearly thirty, which pushes every later beat off its mark.

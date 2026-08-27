@@ -19,18 +19,18 @@ At an unhurried hundred and fifty words a minute:
 
 | Segment | Words | Spoken |
 | --- | --- | --- |
-| 1 — The problem (0:00) | 60 | 24s |
-| 2 — The ask (0:25) | 38 | 15s |
+| 1 — The problem (0:00) | 82 | 33s |
+| 2 — The ask (0:25) | 28 | 11s |
 | 3 — The plan (0:50) | 41 | 16s |
 | 4 — Going looking (1:15) | 57 | 23s |
-| 5 — Screening (1:40) | 64 | 26s |
+| 5 — Screening (1:40) | 89 | 36s |
 | 6 — The card (2:10) | 68 | 27s |
-| 7 — It runs (2:40) | 35 | 14s |
+| 7 — It runs (2:40) | 48 | 19s |
 | 8 — The contract (3:05) | 63 | 25s |
-| 9 — What it cost (3:35) | 86 | 34s |
-| **total** | **512** | **205s** |
+| 9 — What it cost (3:35) | 83 | 33s |
+| **total** | **559** | **224s** |
 
-That leaves roughly 35 seconds of the four-minute limit
+That leaves roughly 16 seconds of the four-minute limit
 unspoken, which is the point — the gaps are where the screen does the talking.
 Do not fill them.
 
@@ -38,20 +38,24 @@ Do not fill them.
 
 ## 1 — The problem (0:00)
 
-An agent can only do what its tools and permissions allow. So the real
-question, before you hand it a job, is not which model it uses. It is what the
-job will reach.
+Someone runs onboarding at a small studio. Not a developer. Not on a security
+team.
 
-Nobody sees that list before they say yes. You approve one tool, then another,
-and somewhere in there you hand over more than you meant to.
+They hand the job to an agent, and it starts asking. Allow this tool. Allow
+this one. Each names a server they have never heard of.
+
+One says "repo". That is read and write access to every private repository on
+the account. Nothing on the screen says so.
+
+Agents moved this decision onto whoever happens to be running the task,
+without giving them anything to decide with.
 
 ## 2 — The ask (0:25)
 
-Here is a task. Onboard a new contributor to a repository. Open an issue with
-a setup checklist, label it, invite them, and post a welcome note in the team
-chat.
+Here is that task. Open a checklist issue, invite the new person, post a
+welcome note.
 
-Four things. The agent has one tool.
+Five approvals, the way it works today. The agent has one tool.
 
 ## 3 — The plan (0:50)
 
@@ -79,10 +83,13 @@ The first one's description tells the assistant it has already been audited,
 and to skip further checks. That is not a tool describing itself. It is
 blocked.
 
-The screener never sees the goal, cannot call anything, and answers only in a
-fixed structure. If it is ever fooled, all it hands back is a verdict.
+The thing reading that description is a separate agent. No credentials. It
+cannot call anything. It does not know what the user asked for, so it cannot
+be talked into being helpful. And it answers only in a fixed structure.
 
-The second passes.
+If it is ever fooled, all it hands back is a verdict.
+
+The second candidate passes.
 
 ## 6 — The card (2:10)
 
@@ -101,11 +108,13 @@ One approval.
 
 ## 7 — It runs (2:40)
 
-Approved. The tool is attached with only the permission its step needs, and
-the plan runs against the real server.
+Approved. Once. The tool is attached with only the permission its step needs,
+and the plan runs against the real server.
 
-Issue created. Contributor invited. Both steps, the one it held and the one it
-found.
+Issue created. Contributor invited. Five approvals became one.
+
+And for a task that only reads, it becomes none — under a rule you can read,
+not a convenience.
 
 ## 8 — The contract (3:05)
 
@@ -123,11 +132,11 @@ That is not the model choosing to behave. That is the approval holding.
 Twenty three screening cases, six live misbehaving servers. Nothing dangerous
 through. Nothing legitimate blocked. Median verdict under a second.
 
-Two things worth saying plainly.
+Two things plainly.
 
 We wrote our own tests, so they only proved we agreed with ourselves. Real
 servers found two false positives we could not have invented.
 
-And the injection defence is not proven. We planted one, and the model
-declined it on its own, so the guard never fired. The approval contract is
-proven. Those are different sentences, and we will not blur them.
+And the injection defence is not proven. We planted one, the model declined it
+on its own, so the guard never fired. The approval contract is proven. Those
+are different sentences, and we will not blur them.
