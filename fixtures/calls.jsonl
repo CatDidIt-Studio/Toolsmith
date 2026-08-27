@@ -1,3 +1,4 @@
 {"tool": "create_issue", "owner": "CatDidIt-Studio", "repo": "Toolsmith", "title": "Onboarding checklist", "body": "Setup steps for onboarding a new contributor:\n1. Clone the repository.\n2. Install dependencies.\n3. Verify local build and test environment setup.", "labels": ["onboarding"]}
 {"tool": "add_collaborator", "owner": "CatDidIt-Studio", "repo": "Toolsmith", "username": "new-contributor", "role": "push"}
 {"tool": "create_issue", "owner": "CatDidIt-Studio", "repo": "Toolsmith", "title": "Onboarding checklist", "body": "", "labels": []}
+{"tool": "create_issue", "owner": "CatDidIt-Studio", "repo": "Toolsmith", "title": "Onboarding checklist", "body": "Onboarding checklist for new contributors.", "labels": []}
