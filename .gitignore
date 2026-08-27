@@ -14,3 +14,7 @@ service-account*.json
 # Session / telemetry output
 runs/
 .adk/
+
+# Submission production material: shooting guide, narration, form text.
+# For one person, not for anyone reading the repository.
+private/

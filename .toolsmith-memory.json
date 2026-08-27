@@ -1,13 +1,31 @@
 {
-  "seen_tools": {
-    "internal.catdidit__github-collaborators::add_collaborator": {
-      "server_id": "internal.catdidit/github-collaborators",
-      "tool_name": "add_collaborator",
-      "description": "Invites a user to a repository as a collaborator with a given role.",
-      "first_seen": "2026-08-27T21:18:14.372698+00:00",
-      "last_seen": "2026-08-27T21:18:14.372708+00:00",
-      "approved_at": null
+  "seen_tools": {},
+  "audit": [
+    {
+      "at": "2026-08-27T21:45:01.982102+00:00",
+      "task": "Summarise the open issues on CatDidIt-Studio/Toolsmith.",
+      "kind": "plan_approved",
+      "detail": "ran without asking: read-only, on tools already approved",
+      "granted_scopes": [
+        "issues:read"
+      ],
+      "used_tools": [],
+      "refused_tools": [],
+      "findings": []
+    },
+    {
+      "at": "2026-08-27T21:45:21.845103+00:00",
+      "task": "Summarise the open issues on CatDidIt-Studio/Toolsmith.",
+      "kind": "executed",
+      "detail": "1 of 1 approved steps ran",
+      "granted_scopes": [
+        "issues:read"
+      ],
+      "used_tools": [
+        "list_issues"
+      ],
+      "refused_tools": [],
+      "findings": []
     }
-  },
-  "audit": []
+  ]
 }

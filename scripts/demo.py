@@ -56,18 +56,20 @@ from toolsmith.ui.app import app  # noqa: E402
 N = os.getenv("TOOLSMITH_PROJECT_NUMBER", "111259597572")
 GITHUB_MCP = f"https://toolsmith-github-{N}.us-central1.run.app/mcp"
 
-# Two shapes of the same job, because they demonstrate opposite things and
-# cannot both be filmed in one run.
+# Any task works -- pass one as a quoted argument and it is planned like any
+# other. These are named because they land in four different places, and a
+# demo that only ever shows the happy one is indistinguishable from a
+# hardcoded script.
 #
-# `core` completes: one held tool, one gap that discovery closes, an approval
-# to press. This is the take.
-#
-# `full` adds a step nothing can do. The plan comes back with no approve
-# button at all -- a task that cannot finish is not one to collect permissions
-# for. Worth showing, but it ends with nothing running, so it belongs in its
-# own short beat rather than in the middle of the execution take.
+#   triage     read-only, on a tool already held. Runs unattended.
+#   onboard    one gap that discovery closes. Asks once, then runs.
+#   full       adds a step nothing can do. Refuses to ask at all.
+#   audit      read plus write. Asks, because writing always asks.
 TASKS = {
-    "core": (
+    "triage": (
+        "Summarise the open issues on CatDidIt-Studio/Toolsmith."
+    ),
+    "onboard": (
         "Prepare onboarding for a new contributor to CatDidIt-Studio/Toolsmith: "
         "open an issue titled 'Onboarding checklist' with the setup steps, label "
         "it 'onboarding', and invite the user 'new-contributor' to the repository."
@@ -78,21 +80,33 @@ TASKS = {
         "it 'onboarding', invite the user 'new-contributor' to the repository, and "
         "post a welcome note in the team chat."
     ),
+    "audit": (
+        "Review the open issues on CatDidIt-Studio/Toolsmith and open a new issue "
+        "titled 'Weekly triage' summarising what is still unresolved."
+    ),
 }
 
 HELD = Attachment(
     server_id="internal.catdidit/github-collaborators",
     url=GITHUB_MCP,
-    granted_tools=("create_issue",),
-    granted_scopes=("issues:write",),
+    granted_tools=("create_issue", "list_issues"),
+    granted_scopes=("issues:write", "issues:read"),
 )
+# What the agent starts with. Deliberately partial: enough that some tasks are
+# already possible, not enough that every task is.
 INVENTORY = {
     "create_issue": ToolInventory(
         "create_issue",
         "Creates an issue on a GitHub repository with a title, body and optional labels.",
         ("issues:write",),
         HELD.server_id,
-    )
+    ),
+    "list_issues": ToolInventory(
+        "list_issues",
+        "Lists issues on a GitHub repository, optionally filtered by state or label. Read-only.",
+        ("issues:read",),
+        HELD.server_id,
+    ),
 }
 
 RULE = "─" * 66
@@ -167,7 +181,8 @@ async def take(port: int, open_browser: bool, task: str) -> int:
     say(f"sandbox   {type(sandbox).__name__}  isolated",
         f"memory    {type(memory).__name__}  durable={memory.durable}")
     say("TASK", "", *[f"  {task[i:i + 62]}" for i in range(0, len(task), 62)])
-    say(f"the agent holds one tool: {', '.join(INVENTORY)}")
+    say(f"the agent holds: {', '.join(INVENTORY)}",
+        "everything else it needs, it has to find and get approved")
     print(f"\n{RULE}")
 
     started = time.monotonic()
@@ -204,21 +219,31 @@ async def take(port: int, open_browser: bool, task: str) -> int:
         record_plan(memory, plan, "unapprovable", decision.summary)
         return 0
 
-    say(f"3  {time.monotonic() - started:.0f}s so far. nothing has run.",
-        "",
-        f"   APPROVE OR CANCEL:  {url}",
-        "",
-        f"   asked because: {decision.summary[:58]}")
-    if open_browser:
-        webbrowser.open(url)
-
-    outcome = await approval.wait(timeout=900)
+    if decision.auto:
+        # The policy said this does not need a person. Acting on that is the
+        # whole point -- computing the decision and then asking anyway would
+        # be the same interruption with extra steps.
+        say(f"3  {time.monotonic() - started:.0f}s so far.",
+            "",
+            "   NOT ASKING — this task only reads, on tools already approved.",
+            f"   {url}")
+        approval.answer("approved")
+        outcome = "approved"
+    else:
+        say(f"3  {time.monotonic() - started:.0f}s so far. nothing has run.",
+            "",
+            f"   APPROVE OR CANCEL:  {url}",
+            "",
+            f"   asked because: {decision.summary[:58]}")
+        if open_browser:
+            webbrowser.open(url)
+        outcome = await approval.wait(timeout=900)
     record_plan(memory, plan, outcome, decision.summary)
     if outcome != "approved":
         say(f"4  {outcome}. nothing ran.")
         return 0
 
-    say("4  approved. running.")
+    say("4  running." if decision.auto else "4  approved. running.")
     state: dict = {}
     record_attachment(state, HELD)
     for attachment in attachments_from(plan.fills):
@@ -258,7 +283,14 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--task", choices=sorted(TASKS), default="core")
+    parser.add_argument(
+        "--task",
+        default="onboard",
+        help=(
+            f"one of {sorted(TASKS)}, or any task in quotes -- "
+            "arbitrary tasks are planned exactly the same way"
+        ),
+    )
     args = parser.parse_args()
 
     config = uvicorn.Config(app, host="127.0.0.1", port=args.port, log_level="critical")
@@ -266,7 +298,7 @@ async def main() -> None:
     serving = asyncio.create_task(server.serve())
     await asyncio.sleep(1)
     try:
-        await take(args.port, not args.no_browser, TASKS[args.task])
+        await take(args.port, not args.no_browser, TASKS.get(args.task, args.task))
         say("(the server is still up — leave it for the audit page, ctrl-c to stop)")
         await serving
     finally:

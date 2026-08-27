@@ -77,6 +77,22 @@ def create_issue(
 
 @mcp.tool(
     description=(
+        "Lists issues on a GitHub repository, optionally filtered by state or "
+        "label. Read-only."
+    )
+)
+def list_issues(owner: str, repo: str, state: str = "open") -> str:
+    _record("list_issues", {"owner": owner, "repo": repo, "state": state})
+    return (
+        f"3 {state} issues on {owner}/{repo}: "
+        "#1 Onboarding checklist (onboarding); "
+        "#2 Sandbox cold start is slow (perf); "
+        "#3 Registry search misses plural forms (bug)."
+    )
+
+
+@mcp.tool(
+    description=(
         "Invites a user to a repository as a collaborator with a given role."
     )
 )
