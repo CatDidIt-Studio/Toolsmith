@@ -22,15 +22,15 @@ At an unhurried hundred and fifty words a minute:
 | 1 — The problem (0:00) | 82 | 33s |
 | 2 — The ask (0:25) | 28 | 11s |
 | 3 — The plan (0:50) | 41 | 16s |
-| 4 — Going looking (1:15) | 57 | 23s |
+| 4 — Going looking (1:15) | 50 | 20s |
 | 5 — Screening (1:40) | 89 | 36s |
-| 6 — The card (2:10) | 68 | 27s |
+| 6 — The card (2:10) | 50 | 20s |
 | 7 — It runs (2:40) | 48 | 19s |
-| 8 — The contract (3:05) | 63 | 25s |
+| 8 — The contract (3:05) | 62 | 25s |
 | 9 — What it cost (3:35) | 83 | 33s |
-| **total** | **559** | **224s** |
+| **total** | **533** | **213s** |
 
-That leaves roughly 16 seconds of the four-minute limit
+That leaves roughly 27 seconds of the four-minute limit
 unspoken, which is the point — the gaps are where the screen does the talking.
 Do not fill them.
 
@@ -68,12 +68,10 @@ credentials, no changes.
 ## 4 — Going looking (1:15)
 
 For the steps it cannot do, it goes looking. It has to open each candidate to
-see what it really offers, because the registry publishes no tool information
-at all.
+see what it offers, because the registry publishes no tool information at all.
 
 That connection is the risky part. So it happens on Cloud Run, in a container
-holding no credentials, thrown away afterwards. You can watch the requests
-arrive.
+holding no credentials, thrown away afterwards.
 
 ## 5 — Screening (1:40)
 
@@ -100,9 +98,7 @@ And every permission it will use, in words. Not "administration write" —
 change settings and collaborators on this repository. Marked high, because it
 is.
 
-Almost nobody knows that GitHub's repo scope reaches every private repository
-you own. That is exactly why over-broad access gets approved. So the
-consequence goes first.
+The consequence goes first. That is the whole trick.
 
 One approval.
 
@@ -121,9 +117,8 @@ not a convenience.
 Asking once only works if the answer binds.
 
 Here the executor is handed three tools and told to use all three. The
-approved plan names one. It tries the second — and the call is refused before
-it reaches the server. The server's own log shows only the approved call
-arrived.
+approved plan names one. It tries the second, and the call is refused before
+it reaches the server. The server's own log shows only the approved call.
 
 That is not the model choosing to behave. That is the approval holding.
 
