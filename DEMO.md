@@ -28,8 +28,14 @@ anything on localhost, because the sandbox runs on Cloud Run and cannot reach
 your machine.
 
 **Lay out the screen.** Terminal on the left, browser on the right, both
-visible at once. Open a third tab on the Cloud Run console for
-`toolsmith-sandbox`, on the metrics view, so request count is visible.
+visible at once. Open a third tab on the Cloud Run **logs** for the sandbox:
+
+```
+https://console.cloud.google.com/run/detail/us-central1/toolsmith-sandbox/logs?project=toolsmith-505815
+```
+
+Logs, not metrics. Cloud Run metrics lag by minutes, so a request-count graph
+will still be flat when the run is over. Log lines arrive in about a second.
 
 **Clear the terminal** and set a large font. The output is designed to be
 sparse and readable at a distance; do not shrink it.
@@ -69,13 +75,23 @@ Let that sit. "Nothing has run yet" is the point of the scene.
             screened: pass, granted ['administration:write']
 ```
 
-**Switch to the Cloud Run tab** while this runs and let the request count
-tick. That is the visual proof of deployment the criteria ask for, and it is
-also the honest picture: first contact is happening off your machine.
+**Switch to the Cloud Run logs tab** while this runs. Two lines per candidate
+appear, live:
 
-Two candidates are probed here. The first carries an injected instruction and
-is blocked; only the survivor is named. If you want the rejection visible,
-that is Scene 7.
+```
+probing https://toolsmith-injected-111259597572.us-central1.run.app/mcp
+  ok  1 tools in 0.37s
+probing https://toolsmith-github-111259597572.us-central1.run.app/mcp
+  ok  3 tools in 0.14s
+```
+
+This is the visual proof of deployment the criteria ask for, and it is the
+honest picture at the same time: first contact with an unvetted server is
+happening on Cloud Run, not on your machine. Say that while it is on screen.
+
+Note both candidates are probed. The first is the one carrying an injected
+instruction — it gets opened and read in the sandbox, then blocked, and only
+the survivor is named in the terminal.
 
 ### Scene 4 — the card (2:10, narration 6)
 

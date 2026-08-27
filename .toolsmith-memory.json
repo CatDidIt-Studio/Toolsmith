@@ -1,0 +1,13 @@
+{
+  "seen_tools": {
+    "internal.catdidit__github-collaborators::add_collaborator": {
+      "server_id": "internal.catdidit/github-collaborators",
+      "tool_name": "add_collaborator",
+      "description": "Invites a user to a repository as a collaborator with a given role.",
+      "first_seen": "2026-08-27T21:18:14.372698+00:00",
+      "last_seen": "2026-08-27T21:18:14.372708+00:00",
+      "approved_at": null
+    }
+  },
+  "audit": []
+}
