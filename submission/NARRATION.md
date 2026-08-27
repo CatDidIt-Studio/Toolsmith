@@ -87,7 +87,7 @@ be talked into being helpful. And it answers only in a fixed structure.
 
 If it is ever fooled, all it hands back is a verdict.
 
-The second candidate passes.
+The second candidate clears, and is offered.
 
 ## 6 — The card (2:10)
 

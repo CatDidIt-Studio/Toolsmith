@@ -11,8 +11,15 @@ Nothing scrolls away before it has been seen.
 
 from __future__ import annotations
 
+# Before the ADK import, because it warns at import time and the warning
+# lands above the first line of the run.
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning)
+
 import argparse
 import asyncio
+import logging
 import os
 import sys
 import time
@@ -89,6 +96,58 @@ INVENTORY = {
 }
 
 RULE = "─" * 66
+
+
+def quiet() -> None:
+    """Stop a recovered failure from looking like a crash.
+
+    Transient 503s from the model are expected and retried, and the retry
+    works -- but the libraries print the whole stack on the way past. Thirty
+    lines of traceback scrolling by, followed by the run continuing normally,
+    reads on camera as something breaking and being ignored.
+
+    Only the noise is suppressed. Anything that actually fails still raises,
+    and a retry still says so in one line.
+    """
+    logging.basicConfig(level=logging.WARNING, format="  (%(message)s)")
+    for name in (
+        "google_adk",
+        "google.adk",
+        "google_genai",
+        "google.genai",
+        "google.adk.workflow",
+        "google.adk.runners",
+        "httpx",
+        "mcp",
+    ):
+        logging.getLogger(name).setLevel(logging.CRITICAL)
+
+    # ADK writes node failures straight to stderr around the retry, so the
+    # stream itself is filtered rather than the loggers.
+    sys.stderr = _Filtered(sys.stderr)
+
+
+class _Filtered:
+    """Drops traceback frames, keeps anything worth reading."""
+
+    NOISE = ("Traceback (most", 'File "', "    ", "^^^", "The above exception",
+             "During handling", "google.genai.errors", "google.adk.workflow",
+             "raise ", "Node execution failed")
+
+    def __init__(self, stream) -> None:
+        self._stream = stream
+
+    def write(self, text: str) -> None:
+        if text.strip() and any(text.lstrip().startswith(n) or n in text[:40]
+                                for n in self.NOISE):
+            return
+        if "is being retried" in text:
+            self._stream.write("     (a model call failed and was retried)\n")
+            return
+        self._stream.write(text)
+
+    def flush(self) -> None:
+        self._stream.flush()
 
 
 def say(*lines: str) -> None:
@@ -195,6 +254,7 @@ async def take(port: int, open_browser: bool, task: str) -> int:
 
 
 async def main() -> None:
+    quiet()
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--no-browser", action="store_true")

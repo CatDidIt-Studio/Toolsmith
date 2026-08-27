@@ -25,6 +25,11 @@ from google.genai import types
 load_dotenv(Path.home() / "keys" / "ToolSmith" / "ToolSmith.env")
 load_dotenv(override=False)
 
+# Deployment addresses, so nothing has to be exported by hand before a run.
+# Loaded last and without override, so a real environment variable and a local
+# .env both still win.
+load_dotenv(Path(__file__).parent / "deployed.env", override=False)
+
 # Hackathon rules require Gemini 3.5 or newer.
 ORCHESTRATOR_MODEL = os.getenv("TOOLSMITH_ORCHESTRATOR_MODEL", "gemini-3.5-flash")
 SCREENER_MODEL = os.getenv("TOOLSMITH_SCREENER_MODEL", "gemini-3.5-flash-lite")
