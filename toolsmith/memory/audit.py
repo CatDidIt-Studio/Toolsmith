@@ -17,13 +17,22 @@ from toolsmith.planning.execute import ExecutionRecord
 from toolsmith.planning.schema import TaskPlan
 
 
-def record_plan(memory: MemoryBank, plan: TaskPlan, decision: str) -> None:
+def record_plan(
+    memory: MemoryBank, plan: TaskPlan, decision: str, why: str = ""
+) -> None:
+    """Record the decision, including the ones nobody made.
+
+    An automatic approval is written down as such, with the rule that let it
+    through. A gate that runs tasks silently is the blank cheque this product
+    argues against -- the difference between one approval and none is only
+    defensible if the ones that were skipped are still visible afterwards.
+    """
     memory.record(
         AuditEntry(
             at=_now(),
             task=plan.task,
             kind=f"plan_{decision}",
-            detail=plan.summary,
+            detail=why or plan.summary,
             granted_scopes=[m.scope for m in plan.footprint]
             + [m.scope for m in plan.new_footprint],
             findings=sorted(

@@ -119,12 +119,34 @@ Each property below is a construct, not a line in a prompt:
 | First contact never touches the agent's process | Cloud Run sandbox |
 | A server cannot quietly rewrite itself after approval | Firestore memory of what it said before |
 | What was granted can be compared with what was used | Audit trail |
+| A task runs unattended only under a stated rule | Policy gate, off by default |
 
 The last two are the ones that make a single approval safe to give. An
 approval that authorises a task and then permits whatever the agent decides
 next is a blank cheque with a consent screen attached — so out-of-plan calls
 are refused before they reach a server, and that refusal is
 [tested](scripts/check_enforcement.py) rather than asserted.
+
+### One approval, and sometimes none
+
+The work this replaces takes five interruptions, four of them about servers
+the person has never heard of. Toolsmith makes it one — not by being less
+careful, but by working out what is being approved before asking.
+
+Zero is the next step, and only defensible if the line is a rule someone can
+read. A task runs unattended when every permission it uses is read-only,
+bounded to a named resource, on the allowlist, and on tools already approved.
+Anything else asks.
+
+Two rules carry the weight. **Attaching a tool is never automatic** — deciding
+to trust a server nobody has run is the decision this whole system exists to
+put in front of a person, and skipping it to save a click would remove the
+product. **Anything that writes is never automatic** — reading the wrong thing
+can be undone, writing the wrong thing changes the world on someone's behalf.
+
+The gate is off unless switched on, is written as reasons to stop rather than
+reasons to proceed, and records what it let through. A gate that runs tasks
+silently is the blank cheque this argues against.
 
 ### Memory is not a component, it is half of a check
 

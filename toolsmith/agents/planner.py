@@ -26,7 +26,18 @@ step the task actually requires, and which held tool would perform each one.
 Break the task down by what has to happen to the outside world, not by how you
 would phrase it. "Open an issue and add a label" is two steps if labelling is
 a separate call, one if the same tool does both. Reading counts: if a step has
-to look something up before it can act, that is a step.
+to fetch something from somewhere before it can act, that is a step.
+
+Thinking is not a step. Summarising, drafting, deciding, comparing, choosing
+wording, working out what to write -- the agent does all of that itself, with
+no tool and no permission. Listing those as steps invents a capability gap
+that nothing can ever fill, and a plan carrying one looks impossible when it
+is not. A step exists only where something outside the agent has to be read
+or changed.
+
+The test is whether it touches something the agent does not already have in
+front of it. Fetching a file is a step. Reading a file that a previous step
+already returned is not.
 
 For each step, name the held tool that performs it in `tool`. Match on what the
 tool does, not on what it is called. If no held tool does it, leave `tool`

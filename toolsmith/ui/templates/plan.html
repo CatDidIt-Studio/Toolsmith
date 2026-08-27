@@ -58,6 +58,8 @@
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
   button:hover { filter:brightness(1.06); }
   .undo { margin:.8rem 0 0; font-size:.82rem; color:var(--ink-3); }
+  .why { margin:.35rem 0 0; font-size:.8rem; color:var(--ink-3);
+         padding-left:.7rem; border-left:2px solid var(--line); }
   .settled { padding:.9rem 1.1rem; border-radius:10px; font-weight:600;
              background:var(--grant-bg); color:var(--grant); }
   .settled.denied { background:var(--withhold-bg); color:var(--withhold); }
@@ -180,6 +182,11 @@
         <button name="decision" value="denied" type="submit">Cancel</button>
       </form>
       <p class="undo">Nothing has happened yet. You are asked once, now, and not again while it runs.</p>
+      {% if a.policy and a.policy.reasons %}
+        <p class="why">Asked because
+          {% for r in a.policy.reasons %}{{ r }}{% if not loop.last %}; {% endif %}{% endfor %}.
+        </p>
+      {% endif %}
     {% endif %}
   </div>
 

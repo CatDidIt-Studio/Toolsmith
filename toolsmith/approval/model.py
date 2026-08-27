@@ -143,6 +143,10 @@ class PlanApproval:
     """
 
     plan: "TaskPlan"
+    # Why this is being asked about at all. Shown on the card, because "you
+    # are being asked because this writes and attaches something new" is
+    # itself information the person deciding should have.
+    policy: object | None = None
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     decision: Decision = "pending"
