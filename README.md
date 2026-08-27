@@ -102,7 +102,8 @@ is successfully injected, this is the entire blast radius:
 {'decision': 'block', 'granted_scopes': [], 'finding_codes': ['injection_in_description']}
 ```
 
-No prose crosses the boundary, because prose is the attack.
+No free-form prose crosses the trust boundary. The screener reads plenty of
+it — that is its job — but nothing it reads can leave in that form.
 
 ### The isolation is enforced, not promised
 
@@ -206,8 +207,9 @@ parameter named `force`, a read-only search needing no scopes at all. A
 screener that blocks these is not cautious, it is useless, and most of the
 tuning work so far has been holding this number at zero.
 
-**Median 1.12s** is what makes screening viable while a human waits, and it is
-the line between this and an offline eval product.
+**Median under a second, in this evaluation**, is what makes screening viable
+while a human waits, and it is the line between this and an offline eval
+product.
 
 Over-broad scope requests are answered by cutting the scope, not by rejecting
 the tool: a candidate asking for GitHub's `repo` scope to file an issue is
