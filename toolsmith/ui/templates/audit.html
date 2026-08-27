@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Audit trail{% endblock %}
+
+{% block head %}
+<style>
+  h1 { font-size:1.1rem; margin:0 0 .3rem; }
+  .sub { color:var(--ink-3); font-size:.85rem; margin:0 0 1.2rem; }
+  .warn-bar { padding:.7rem 1rem; border-radius:10px; margin-bottom:1rem;
+              background:var(--warn-bg); color:var(--warn); font-size:.85rem; }
+  .entry { background:var(--surface); border:1px solid var(--line);
+           border-radius:12px; padding:1rem 1.15rem; margin-bottom:.8rem; }
+  .top { display:flex; justify-content:space-between; align-items:baseline;
+         gap:1rem; margin-bottom:.5rem; }
+  .kind { font-family:var(--mono); font-size:.78rem; font-weight:700; }
+  .kind.executed { color:var(--grant); }
+  .kind.executed_with_refusals, .kind.plan_denied { color:var(--withhold); }
+  .when { color:var(--ink-3); font-size:.76rem; }
+  .task { margin:0 0 .6rem; font-size:.92rem; }
+  .row { display:grid; grid-template-columns:7.5rem 1fr; gap:.3rem .8rem;
+         font-size:.82rem; padding:.25rem 0; }
+  .row dt { color:var(--ink-3); }
+  .row dd { margin:0; font-family:var(--mono); font-size:.76rem; word-break:break-word; }
+  .unused dd { color:var(--warn); }
+  .refused dd { color:var(--withhold); }
+  .empty { color:var(--ink-3); text-align:center; padding:2.5rem 1rem;
+           background:var(--surface); border:1px solid var(--line); border-radius:12px; }
+</style>
+{% endblock %}
+
+{% block body %}
+<h1>Audit trail</h1>
+<p class="sub">What was approved, and what was done with it.</p>
+
+{% if not durable %}
+  <p class="warn-bar">
+    Local memory — this does not survive a restart and is not shared between
+    instances. Set a Firestore project for a trail that outlives the process.
+  </p>
+{% endif %}
+
+{% for e in entries %}
+  <div class="entry">
+    <div class="top">
+      <span class="kind {{ e.kind }}">{{ e.kind }}</span>
+      <span class="when">{{ e.at }}</span>
+    </div>
+    <p class="task">{{ e.task }}</p>
+    {% if e.detail %}<p class="sub" style="margin:0 0 .5rem">{{ e.detail }}</p>{% endif %}
+
+    {% if e.granted_scopes %}
+      <dl class="row"><dt>granted</dt><dd>{{ e.granted_scopes | join(", ") }}</dd></dl>
+    {% endif %}
+    {% if e.used_tools %}
+      <dl class="row"><dt>used</dt><dd>{{ e.used_tools | join(", ") }}</dd></dl>
+    {% endif %}
+    {% if e.refused_tools %}
+      <dl class="row refused"><dt>refused</dt><dd>{{ e.refused_tools | join(", ") }}</dd></dl>
+    {% endif %}
+    {% if e.findings %}
+      <dl class="row"><dt>findings</dt><dd>{{ e.findings | join(", ") }}</dd></dl>
+    {% endif %}
+  </div>
+{% else %}
+  <p class="empty">Nothing recorded yet.</p>
+{% endfor %}
+{% endblock %}

@@ -17,6 +17,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
+from toolsmith.memory.store import MemoryBank, ToolMemory, _now, get_memory
 from toolsmith.planning.schema import PlannedStep
 from toolsmith.relevance import select_relevant
 from toolsmith.registry.client import ServerCandidate
@@ -52,9 +53,14 @@ class GapFill:
 
 
 async def fill_gap(
-    step: PlannedStep, *, sandbox: Sandbox, attached_tool_names: list[str] | None = None
+    step: PlannedStep,
+    *,
+    sandbox: Sandbox,
+    attached_tool_names: list[str] | None = None,
+    memory: MemoryBank | None = None,
 ) -> GapFill | None:
     """Look for one tool that closes this step, screened and ready to show."""
+    memory = memory or get_memory()
     capability = step.needs or step.action
     discovery = await discover(capability)
 
@@ -89,17 +95,36 @@ async def fill_gap(
             continue
 
         for tool in relevant:
+            # What this tool said last time, if we have ever looked at it.
+            # Without this the drift check has nothing to compare against and
+            # cannot fire at all -- which is what it did before memory
+            # existed.
+            seen = memory.recall_tool(server.name, tool.name)
             candidate = tool.to_candidate(
                 server_id=server.name,
                 requested_scopes=[h.name for h in remote.headers if h.secret],
                 publisher=server.name.split("/", 1)[0],
                 signed=False,
+                previous_description=seen.description if seen else None,
             )
             verdict, _ = await screen_candidate(
                 candidate,
                 task_summary=capability,
                 attached_tool_names=attached_tool_names or [],
             )
+            # Recorded whatever the verdict, and before anyone approves
+            # anything. A server that is blocked today is one we want to
+            # recognise if it comes back reworded tomorrow.
+            memory.remember_tool(
+                ToolMemory(
+                    server_id=server.name,
+                    tool_name=tool.name,
+                    description=tool.description,
+                    first_seen=seen.first_seen if seen else _now(),
+                    approved_at=seen.approved_at if seen else None,
+                )
+            )
+
             if verdict.blocked:
                 continue
             return GapFill(
@@ -119,6 +144,7 @@ async def fill_gaps(
     *,
     sandbox: Sandbox,
     attached_tool_names: list[str] | None = None,
+    memory: MemoryBank | None = None,
 ) -> list[GapFill]:
     """Close what can be closed, concurrently.
 
@@ -129,10 +155,16 @@ async def fill_gaps(
     if not steps:
         return []
 
+    # One handle, so concurrent gaps see each other's writes.
+    shared = memory or get_memory()
+
     async def one(step: PlannedStep) -> GapFill | None:
         try:
             return await fill_gap(
-                step, sandbox=sandbox, attached_tool_names=attached_tool_names
+                step,
+                sandbox=sandbox,
+                attached_tool_names=attached_tool_names,
+                memory=shared,
             )
         except Exception:
             logger.exception("gap fill failed for %r", step.action)

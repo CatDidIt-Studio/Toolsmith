@@ -32,6 +32,12 @@ from toolsmith.planning.execute import (  # noqa: E402
 from toolsmith.planning.fill import attachments_from, fill_gaps  # noqa: E402
 from toolsmith.planning.planner import plan_task  # noqa: E402
 from toolsmith.planning.schema import ToolInventory  # noqa: E402
+from toolsmith.memory.audit import (  # noqa: E402
+    record_execution,
+    record_plan,
+    unused_grants,
+)
+from toolsmith.memory.store import get_memory  # noqa: E402
 from toolsmith.sandbox.backends import get_sandbox  # noqa: E402
 
 N = os.getenv("TOOLSMITH_PROJECT_NUMBER", "111259597572")
@@ -67,7 +73,9 @@ def mark(label: str, started: float) -> float:
 
 async def main() -> int:
     sandbox = get_sandbox()
-    print(f"  sandbox {type(sandbox).__name__}, isolated={sandbox.isolated}\n")
+    memory = get_memory()
+    print(f"  sandbox {type(sandbox).__name__}, isolated={sandbox.isolated}")
+    print(f"  memory  {type(memory).__name__}, durable={memory.durable}\n")
     if not sandbox.isolated:
         print("  REFUSING: rehearse against the deployed sandbox, not the local one")
         return 1
@@ -79,7 +87,10 @@ async def main() -> int:
 
     if plan.missing:
         plan.fills = await fill_gaps(
-            plan.missing, sandbox=sandbox, attached_tool_names=list(INVENTORY)
+            plan.missing,
+            sandbox=sandbox,
+            attached_tool_names=list(INVENTORY),
+            memory=memory,
         )
         last = mark(f"gaps filled: {len(plan.fills)}/{len(plan.missing)}", last)
 
@@ -93,6 +104,7 @@ async def main() -> int:
         return 1
 
     approval.answer("approved")
+    record_plan(memory, plan, "approved")
     last = mark("approved", last)
 
     state: dict = {}
@@ -117,6 +129,9 @@ async def main() -> int:
             if part.text:
                 record.text.append(part.text)
     last = mark(f"executed {len(record.calls)}/{len(plan.executable)}: {record.calls}", last)
+    record_execution(memory, plan, record)
+    unused = unused_grants(plan, record)
+    print(f"  granted but unused: {unused or 'none'}")
 
     total = time.monotonic() - t0
     print(f"\n  total {total:.1f}s   refused={record.refused}   in-plan={record.stayed_in_plan}")

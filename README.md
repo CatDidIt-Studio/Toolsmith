@@ -117,12 +117,31 @@ Each property below is a construct, not a line in a prompt:
 | Server cannot expose unapproved tools | `McpToolset(tool_filter=...)` |
 | Executor cannot exceed the approved plan | `before_tool_callback` refuses the call |
 | First contact never touches the agent's process | Cloud Run sandbox |
+| A server cannot quietly rewrite itself after approval | Firestore memory of what it said before |
+| What was granted can be compared with what was used | Audit trail |
 
 The last two are the ones that make a single approval safe to give. An
 approval that authorises a task and then permits whatever the agent decides
 next is a blank cheque with a consent screen attached — so out-of-plan calls
 are refused before they reach a server, and that refusal is
 [tested](scripts/check_enforcement.py) rather than asserted.
+
+### Memory is not a component, it is half of a check
+
+Rug-pull detection compares a tool's description against the one approved
+earlier. For most of this project that check could not fire: nothing supplied
+the earlier description, so the parameter defaulted to empty and only test
+cases ever set it. It passed everything, because the only things exercising it
+were the things setting it.
+
+Memory is what gives the comparison something to do — and a server that
+rewrites itself after being trusted is the failure this most needs to catch.
+Recorded whatever the verdict was, too: a server blocked today is one worth
+recognising when it comes back reworded.
+
+The audit trail records granted permissions and exercised ones separately. A
+grant that is never used is the clearest argument for a narrower grant next
+time, and it is an answer that can only come from execution.
 
 ### Computation and judgment are separated
 

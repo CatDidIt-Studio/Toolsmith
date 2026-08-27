@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from toolsmith.approval.model import STORE
+from toolsmith.memory.store import get_memory
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -50,6 +51,16 @@ async def index(request: Request) -> HTMLResponse:
         return RedirectResponse(f"/{route}/{one.id}", status_code=303)
     return TEMPLATES.TemplateResponse(
         request, "index.html", {"requests": STORE.all()}
+    )
+
+
+@app.get("/audit", response_class=HTMLResponse)
+async def audit(request: Request) -> HTMLResponse:
+    memory = get_memory()
+    return TEMPLATES.TemplateResponse(
+        request,
+        "audit.html",
+        {"entries": memory.trail(limit=50), "durable": memory.durable},
     )
 
 
