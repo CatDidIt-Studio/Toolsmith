@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -45,9 +46,27 @@ mcp = FastMCP("github-like", transport_security=_security())
 LOG = Path(__file__).parent / "calls.jsonl"
 
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+for _noisy in ("uvicorn.access", "mcp", "httpx"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+logger = logging.getLogger("github-like")
+
+# Fields worth seeing in a log, and short enough to belong in one. Issue
+# bodies are excluded: they are composed from whatever earlier tools returned,
+# which on a bad day is text a third-party server wrote, and a log line ends
+# up in places that were not expecting someone else's prose.
+_SHOWN = ("owner", "repo", "title", "username", "role", "state", "labels")
+
+
 def _record(tool: str, payload: dict) -> None:
     with LOG.open("a") as handle:
         handle.write(json.dumps({"tool": tool, **payload}) + "\n")
+    shown = " ".join(
+        f"{k}={str(payload[k])[:40]!r}" for k in _SHOWN if payload.get(k)
+    )
+    # Printed because a claim that the plan executed is worth more when the
+    # server on the other end says so independently.
+    logger.info("CALL %s  %s", tool, shown)
 
 
 @mcp.tool(
