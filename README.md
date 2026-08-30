@@ -176,8 +176,8 @@ reading comprehension.
 
 ## Status
 
-Discovery, sandboxed probing, screening and the approval card run end to end.
-Orchestrator wiring and the Cloud Run deployment are still outstanding.
+Discovery, sandboxed probing, screening, the approval card, execution and
+enforcement run end to end against the deployed Cloud Run services.
 
 ```
 bench       23 cases   0 dangerous through   0 clean blocked   0 wrong permission
