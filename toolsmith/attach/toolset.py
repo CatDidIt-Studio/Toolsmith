@@ -35,6 +35,16 @@ from toolsmith.config import ATTACHED_STATE_KEY
 
 logger = logging.getLogger(__name__)
 
+# Long enough for a Cloud Run instance to start from zero.
+SESSION_TIMEOUT_S = 30.0
+
+
+def _cause(exc: BaseException) -> str:
+    """The innermost reason, without the chain that wraps it."""
+    while exc.__cause__ is not None:
+        exc = exc.__cause__
+    return f"{type(exc).__name__}: {exc}"[:160]
+
 
 @dataclass(frozen=True)
 class Attachment:
@@ -93,10 +103,19 @@ class ToolsmithToolset(BaseToolset):
             try:
                 delegate = self._delegate_for(att)
                 tools.extend(await delegate.get_tools(readonly_context))
-            except Exception:
+            except Exception as exc:  # noqa: BLE001
                 # A misbehaving third-party server must not take down the
                 # agent. Drop it and keep the rest of the capability set.
-                logger.exception("attached server %s failed to list tools", att.server_id)
+                #
+                # Logged as one line rather than a stack. The traceback is
+                # forty lines of someone else's library and says nothing the
+                # first line does not, and a wall of it scrolling past makes
+                # a handled failure look like a crash.
+                logger.warning(
+                    "attached server %s failed to list tools: %s",
+                    att.server_id,
+                    _cause(exc),
+                )
 
         return tools
 
@@ -107,6 +126,12 @@ class ToolsmithToolset(BaseToolset):
                 connection_params=StreamableHTTPConnectionParams(
                     url=att.url,
                     headers=dict(att.headers),
+                    # The default is five seconds, which is the time an
+                    # already-running server needs and not the time a
+                    # scaled-to-zero one needs to wake up. A cold instance
+                    # loses the session before it has finished starting, and
+                    # the tool then looks broken rather than slow.
+                    timeout=SESSION_TIMEOUT_S,
                 ),
                 # Framework-level least privilege.
                 tool_filter=list(att.granted_tools),
@@ -119,8 +144,8 @@ class ToolsmithToolset(BaseToolset):
         for delegate in self._delegates.values():
             try:
                 await delegate.close()
-            except Exception:
-                logger.exception("failed to close delegate toolset")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to close delegate toolset: %s", _cause(exc))
         self._delegates.clear()
 
 
