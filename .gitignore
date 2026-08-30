@@ -14,6 +14,9 @@ service-account*.json
 # Session / telemetry output
 runs/
 .adk/
+# Local memory bank: rewritten by every run, and its contents are
+# whatever the last demo happened to see.
+.toolsmith-memory.json
 
 # Submission production material: shooting guide, narration, form text.
 # For one person, not for anyone reading the repository.
